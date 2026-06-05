@@ -1,12 +1,17 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QUrl>
+
+#include "fileio.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
+    FileIo fileIo;
+    engine.rootContext()->setContextProperty(QStringLiteral("fileIo"), &fileIo);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

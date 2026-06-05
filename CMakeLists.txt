@@ -11,6 +11,8 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(lizzie3d
     src/main.cpp
+    src/fileio.cpp
+    src/fileio.h
 )
 
 qt_add_qml_module(lizzie3d
