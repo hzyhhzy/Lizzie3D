@@ -55,6 +55,14 @@ Rectangle {
                 contentHeight: Math.max(height, app.treeCanvasHeight)
                 boundsBehavior: Flickable.StopAtBounds
 
+                ScrollBar.horizontal: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+
                 Canvas {
                     id: branchCanvas
                     width: treeFlick.contentWidth

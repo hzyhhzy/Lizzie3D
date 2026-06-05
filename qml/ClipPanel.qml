@@ -1,12 +1,17 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick3D
 
 Rectangle {
     id: clipPanel
     required property var app
     required property Item branchPanelItem
     required property Item visualPanelItem
+    property alias clipCamera: clipCamera
+    property alias clipAxisView: clipAxisView
+    property string hoverClipAxis: ""
+
     anchors.right: branchPanelItem.left
     anchors.rightMargin: app.panelGap
     anchors.top: visualPanelItem.bottom
@@ -19,26 +24,10 @@ Rectangle {
     border.color: "#b9c8d0"
     clip: true
 
-    Flickable {
-        id: clipPanelFlick
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: app.panelInnerMargin
-        clip: true
-        interactive: contentHeight > height
-        contentWidth: width
-        contentHeight: clipPanelContent.implicitHeight
-        boundsBehavior: Flickable.StopAtBounds
-
-        ScrollBar.vertical: ScrollBar {
-            policy: clipPanelFlick.contentHeight > clipPanelFlick.height
-                    ? ScrollBar.AsNeeded
-                    : ScrollBar.AlwaysOff
-        }
-
-        ColumnLayout {
-        id: clipPanelContent
-        width: clipPanelFlick.width
-        spacing: app.compactLayout ? 5 : 8
+        spacing: app.compactLayout ? 6 : 8
 
         RowLayout {
             Layout.fillWidth: true
@@ -55,231 +44,178 @@ Rectangle {
                 text: app.trText("reset")
                 Layout.preferredWidth: app.compactLayout ? 56 : 62
                 onClicked: {
-                    app.focusBoardInput()
                     app.resetClipCounts()
+                    app.focusBoardInput()
                 }
             }
-        }
-
-        Label {
-            text: app.trText("activeAxis") + ": " + app.frontFacingClipAxis()
-            color: "#52636d"
-            font.pixelSize: 12
-            Layout.fillWidth: true
         }
 
         Item {
-            id: clipCross
-            property real center: width / 2
-            property real crossSize: Math.max(app.compactLayout ? 138 : 170,
-                                              Math.min(app.compactLayout ? 176 : 204,
-                                                       clipPanel.height * (app.compactLayout ? 0.34 : 0.42)))
-            property real axisRadius: crossSize * 0.34
-
-            width: crossSize
-            height: crossSize
-            Layout.alignment: Qt.AlignHCenter
-
-            Repeater {
-                model: [
-                    { "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                    { "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" }
-                ]
-
-                delegate: Rectangle {
-                    x: clipCross.center - width / 2
-                    y: clipCross.center - height / 2
-                    width: clipCross.axisRadius * 2
-                    height: 3
-                    radius: 2
-                    rotation: app.projectedAxisAngle(modelData.dx, modelData.dy, modelData.dz)
-                    transformOrigin: Item.Center
-                    color: modelData.color
-                    opacity: 0.56
-                }
-            }
-
-            Rectangle {
-                x: clipCross.center - width / 2
-                y: clipCross.center - height / 2
-                width: 10
-                height: 10
-                radius: 5
-                color: "#52636d"
-                opacity: 0.7
-            }
-
-            Repeater {
-                model: app.clipAxes
-
-                delegate: Rectangle {
-                    id: clipBubble
-                    property var bubbleCenter: app.projectedAxisPoint(modelData.dx,
-                                                                       modelData.dy,
-                                                                       modelData.dz,
-                                                                       clipCross.center,
-                                                                       clipCross.axisRadius)
-
-                    x: bubbleCenter.x - width / 2
-                    y: bubbleCenter.y - height / 2
-                    width: 44
-                    height: 44
-                    radius: 22
-                    color: clipMouse.containsMouse
-                           ? "#d5edf7"
-                           : app.clipCount(modelData.axis) > 0
-                             ? "#eef8fb"
-                             : "#ffffff"
-                    border.width: 2
-                    border.color: clipMouse.containsMouse ? "#3489a6" : modelData.color
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: -2
-
-                        Text {
-                            text: modelData.axis
-                            color: "#41515a"
-                            font.pixelSize: 10
-                            horizontalAlignment: Text.AlignHCenter
-                            width: clipBubble.width
-                        }
-
-                        Text {
-                            text: app.clipCount(modelData.axis)
-                            color: "#16212a"
-                            font.pixelSize: 17
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                            width: clipBubble.width
-                        }
-                    }
-
-                    MouseArea {
-                        id: clipMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.LeftButton
-
-                        onClicked: {
-                            app.focusBoardInput()
-                        }
-
-                        onWheel: function(wheel) {
-                            app.focusBoardInput()
-                            app.adjustClip(modelData.axis, wheel.angleDelta.y > 0 ? 1 : -1)
-                            wheel.accepted = true
-                        }
-                    }
-                }
-            }
-        }
-
-        Flickable {
-            id: clipRowsFlick
+            id: clipAxisContainer
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(clipRowsContent.implicitHeight,
-                                             app.compactLayout ? 176 : 214)
-            Layout.minimumHeight: app.compactLayout ? 88 : 150
-            clip: true
-            contentWidth: width
-            contentHeight: clipRowsContent.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
+            Layout.fillHeight: true
+            Layout.minimumHeight: app.compactLayout ? 132 : 166
 
-            ScrollBar.vertical: ScrollBar {
-                policy: clipRowsFlick.contentHeight > clipRowsFlick.height
-                        ? ScrollBar.AsNeeded
-                        : ScrollBar.AlwaysOff
-            }
+            View3D {
+                id: clipAxisView
+                anchors.fill: parent
+                camera: clipCamera
 
-            ColumnLayout {
-                id: clipRowsContent
-                width: clipRowsFlick.width
-                spacing: app.compactLayout ? 3 : 6
+                environment: SceneEnvironment {
+                    backgroundMode: SceneEnvironment.Transparent
+                    antialiasingMode: SceneEnvironment.MSAA
+                    antialiasingQuality: SceneEnvironment.High
+                }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: app.compactLayout ? 4 : 6
+                PerspectiveCamera {
+                    id: clipCamera
+                    fieldOfView: 38
+                    clipNear: 4
+                    clipFar: 1000
+                }
 
-                    Label {
-                        text: app.trText("axis")
-                        color: "#52636d"
-                        font.pixelSize: app.compactLayout ? 11 : 12
-                        Layout.preferredWidth: app.compactLayout ? 36 : 42
-                    }
+                DirectionalLight {
+                    eulerRotation.x: -34
+                    eulerRotation.y: 28
+                    brightness: 1.45
+                }
 
-                    Label {
-                        text: app.trText("layers")
-                        color: "#52636d"
-                        font.pixelSize: app.compactLayout ? 11 : 12
-                        horizontalAlignment: Text.AlignHCenter
-                        Layout.fillWidth: true
-                    }
+                PointLight {
+                    position: Qt.vector3d(0, 120, 170)
+                    brightness: 28
+                }
 
-                    Label {
-                        text: app.trText("edit")
-                        color: "#52636d"
-                        font.pixelSize: app.compactLayout ? 11 : 12
-                        horizontalAlignment: Text.AlignHCenter
-                        Layout.preferredWidth: app.compactLayout ? 68 : 76
+                Repeater3D {
+                    model: [
+                        { "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
+                        { "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
+                        { "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" }
+                    ]
+
+                    delegate: Model {
+                        readonly property real axisLength: 68
+                        readonly property int dx: modelData.dx
+                        readonly property int dy: modelData.dy
+                        readonly property int dz: modelData.dz
+
+                        source: "#Cube"
+                        pickable: false
+                        position: Qt.vector3d(0, 0, 0)
+                        scale: dx !== 0
+                               ? Qt.vector3d(axisLength * 2 / 100, 0.03, 0.03)
+                               : dy !== 0
+                                 ? Qt.vector3d(0.03, axisLength * 2 / 100, 0.03)
+                                 : Qt.vector3d(0.03, 0.03, axisLength * 2 / 100)
+                        materials: PrincipledMaterial {
+                            baseColor: modelData.color
+                            roughness: 0.42
+                        }
                     }
                 }
 
-                Repeater {
+                Repeater3D {
                     model: app.clipAxes
 
-                    delegate: RowLayout {
-                        Layout.fillWidth: true
-                        spacing: app.compactLayout ? 4 : 6
+                    delegate: Model {
+                        readonly property real axisLength: 68
+                        readonly property bool clipHandle: true
+                        readonly property string clipAxisName: modelData.axis
+                        readonly property bool hovered: clipPanel.hoverClipAxis === modelData.axis
+                        readonly property int count: app.clipCount(modelData.axis)
 
-                        Label {
-                            text: modelData.axis
-                            color: modelData.color
-                            font.pixelSize: app.compactLayout ? 12 : 13
-                            font.bold: true
-                            Layout.preferredWidth: app.compactLayout ? 36 : 42
-                        }
+                        source: "#Rectangle"
+                        pickable: true
+                        position: Qt.vector3d(modelData.dx * axisLength,
+                                              modelData.dy * axisLength,
+                                              modelData.dz * axisLength)
+                        rotation: app.axisBillboardRotation()
+                        scale: Qt.vector3d(0.44, 0.44, 0.44)
+                        materials: PrincipledMaterial {
+                            lighting: PrincipledMaterial.NoLighting
+                            baseColor: "#ffffff"
+                            baseColorMap: Texture {
+                                sourceItem: Item {
+                                    width: 256
+                                    height: 256
 
-                        Label {
-                            text: app.clipCount(modelData.axis)
-                            color: "#16212a"
-                            font.pixelSize: app.compactLayout ? 14 : 15
-                            font.bold: true
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.fillWidth: true
-                        }
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.margins: 6
+                                        radius: width / 2
+                                        color: hovered
+                                               ? "#d5edf7"
+                                               : count > 0
+                                                 ? "#eef8fb"
+                                                 : "#ffffff"
+                                        border.width: hovered ? 16 : 12
+                                        border.color: hovered ? "#3489a6" : modelData.color
 
-                        RowLayout {
-                            spacing: app.compactLayout ? 3 : 4
-                            Layout.preferredWidth: app.compactLayout ? 68 : 76
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: -8
 
-                            Button {
-                                text: "-"
-                                enabled: app.clipCount(modelData.axis) > 0
-                                Layout.preferredWidth: app.compactLayout ? 31 : 34
-                                Layout.preferredHeight: app.compactLayout ? 24 : 28
-                                onClicked: {
-                                    app.focusBoardInput()
-                                    app.adjustClip(modelData.axis, -1)
+                                            Text {
+                                                text: modelData.axis
+                                                width: 190
+                                                horizontalAlignment: Text.AlignHCenter
+                                                color: "#41515a"
+                                                font.pixelSize: 46
+                                                font.bold: true
+                                            }
+
+                                            Text {
+                                                text: count
+                                                width: 190
+                                                horizontalAlignment: Text.AlignHCenter
+                                                color: "#16212a"
+                                                font.pixelSize: 82
+                                                font.bold: true
+                                            }
+                                        }
+                                    }
                                 }
                             }
-
-                            Button {
-                                text: "+"
-                                enabled: app.clipCount(modelData.axis) < app.boardSize
-                                Layout.preferredWidth: app.compactLayout ? 31 : 34
-                                Layout.preferredHeight: app.compactLayout ? 24 : 28
-                                onClicked: {
-                                    app.focusBoardInput()
-                                    app.adjustClip(modelData.axis, 1)
-                                }
-                            }
+                            alphaMode: PrincipledMaterial.Mask
+                            alphaCutoff: 0.04
+                            cullMode: Material.NoCulling
                         }
                     }
                 }
             }
-        }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton
+
+                function pickedAxis(x, y) {
+                    var result = clipAxisView.pick(x, y)
+                    var hit = result.objectHit
+                    return hit && hit.clipHandle ? hit.clipAxisName : ""
+                }
+
+                onPositionChanged: function(mouse) {
+                    clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
+                }
+
+                onExited: clipPanel.hoverClipAxis = ""
+
+                onClicked: function(mouse) {
+                    clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
+                    app.focusBoardInput()
+                    mouse.accepted = true
+                }
+
+                onWheel: function(wheel) {
+                    var axis = pickedAxis(wheel.x, wheel.y)
+                    if (axis !== "") {
+                        clipPanel.hoverClipAxis = axis
+                        app.adjustClip(axis, wheel.angleDelta.y > 0 ? 1 : -1)
+                    }
+                    app.focusBoardInput()
+                    wheel.accepted = true
+                }
+            }
         }
     }
 }

@@ -14,6 +14,7 @@ public:
 
     QString lastError() const;
 
+    Q_INVOKABLE QString readTextFile(const QUrl &url);
     Q_INVOKABLE bool writeTextFile(const QUrl &url, const QString &text);
 
 signals:

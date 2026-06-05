@@ -95,7 +95,7 @@ Rectangle {
                 position: Qt.vector3d(modelData.dx * axisLength,
                                       modelData.dy * axisLength,
                                       modelData.dz * axisLength)
-                scale: Qt.vector3d(0.18, 0.18, 0.18)
+                scale: Qt.vector3d(0.36, 0.36, 0.36)
                 materials: PrincipledMaterial {
                     baseColor: modelData.color
                     roughness: 0.22
@@ -115,7 +115,7 @@ Rectangle {
                           axisGizmoPanel.width - width - 4)
             y: app.clamp(axisView.y + screenPoint.y - height / 2,
                           4,
-                          axisGizmoPanel.height - height - (app.compactLayout ? 18 : 22))
+                          axisGizmoPanel.height - height - (app.compactLayout ? 34 : 38))
             z: 2
             visible: screenPoint.x > -900 && screenPoint.y > -900
             text: modelData.label
@@ -125,17 +125,6 @@ Rectangle {
             style: Text.Outline
             styleColor: "#eef4f7"
         }
-    }
-
-    Text {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 6
-        horizontalAlignment: Text.AlignHCenter
-        text: app.trText("axisHint")
-        color: "#41515a"
-        font.pixelSize: 12
     }
 
     MouseArea {
@@ -150,6 +139,20 @@ Rectangle {
             if (hit && hit.axisHandle)
                 app.alignCameraToAxis(hit.axisName)
             mouse.accepted = true
+        }
+    }
+
+    Button {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 5
+        text: app.trText("reset")
+        width: app.compactLayout ? 56 : 62
+        height: app.compactLayout ? 24 : 28
+        font.pixelSize: app.compactLayout ? 11 : 12
+        onClicked: {
+            app.resetCamera()
+            app.focusBoardInput()
         }
     }
 }

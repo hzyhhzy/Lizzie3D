@@ -9,6 +9,7 @@ Item {
     property real lastY: 0
     property bool moved: false
     property int pressedButton: 0
+    property bool boardPressBlocked: false
     property bool forwardHeld: false
     property bool backHeld: false
     property bool leftHeld: false
@@ -64,6 +65,9 @@ Item {
     }
 
     Keys.onPressed: function(event) {
+        if (event.modifiers & Qt.ControlModifier)
+            return
+
         if (event.key === Qt.Key_W) {
             inputLayer.upHeld = true
             event.accepted = true
@@ -116,6 +120,9 @@ Item {
     }
 
     Keys.onReleased: function(event) {
+        if (event.modifiers & Qt.ControlModifier)
+            return
+
         if (event.key === Qt.Key_W) {
             inputLayer.upHeld = false
             event.accepted = true
@@ -155,6 +162,15 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
         onPressed: function(mouse) {
+            inputLayer.boardPressBlocked = app.boardInputBlocked(inputLayer, mouse.x, mouse.y)
+            if (inputLayer.boardPressBlocked) {
+                inputLayer.pressedButton = 0
+                inputLayer.moved = false
+                app.clearHover()
+                mouse.accepted = true
+                return
+            }
+
             app.focusBoardInput()
             inputLayer.lastX = mouse.x
             inputLayer.lastY = mouse.y
@@ -164,6 +180,12 @@ Item {
         }
 
         onPositionChanged: function(mouse) {
+            if (inputLayer.boardPressBlocked || (mouse.buttons === Qt.NoButton && app.boardInputBlocked(inputLayer, mouse.x, mouse.y))) {
+                app.clearHover()
+                mouse.accepted = true
+                return
+            }
+
             var dx = mouse.x - inputLayer.lastX
             var dy = mouse.y - inputLayer.lastY
 
@@ -186,16 +208,26 @@ Item {
         }
 
         onReleased: function(mouse) {
-            if (inputLayer.pressedButton === Qt.LeftButton && !inputLayer.moved)
+            if (!inputLayer.boardPressBlocked && inputLayer.pressedButton === Qt.LeftButton && !inputLayer.moved)
                 app.placeFromMouse(mouse.x, mouse.y)
             inputLayer.pressedButton = 0
-            app.updateHover(mouse.x, mouse.y)
+            inputLayer.boardPressBlocked = false
+            if (app.boardInputBlocked(inputLayer, mouse.x, mouse.y))
+                app.clearHover()
+            else
+                app.updateHover(mouse.x, mouse.y)
             mouse.accepted = true
         }
 
         onExited: app.clearHover()
 
         onWheel: function(wheel) {
+            if (app.boardInputBlocked(inputLayer, wheel.x, wheel.y)) {
+                app.clearHover()
+                wheel.accepted = true
+                return
+            }
+
             var factor = wheel.angleDelta.y > 0 ? 0.9 : 1.12
             app.cameraDistance = app.clamp(app.cameraDistance * factor, 220, Math.max(1900, app.defaultCameraDistance() * 2.2))
             app.refreshCamera()

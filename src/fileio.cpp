@@ -14,6 +14,30 @@ QString FileIo::lastError() const
     return m_lastError;
 }
 
+QString FileIo::readTextFile(const QUrl &url)
+{
+    const QString path = url.isLocalFile() ? url.toLocalFile() : url.toString(QUrl::PreferLocalFile);
+    if (path.isEmpty()) {
+        setLastError(QStringLiteral("Empty file path."));
+        return QString();
+    }
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        setLastError(file.errorString());
+        return QString();
+    }
+
+    const QByteArray bytes = file.readAll();
+    if (file.error() != QFile::NoError) {
+        setLastError(file.errorString());
+        return QString();
+    }
+
+    setLastError(QString());
+    return QString::fromUtf8(bytes);
+}
+
 bool FileIo::writeTextFile(const QUrl &url, const QString &text)
 {
     const QString path = url.isLocalFile() ? url.toLocalFile() : url.toString(QUrl::PreferLocalFile);

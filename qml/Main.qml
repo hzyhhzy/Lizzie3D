@@ -22,8 +22,10 @@ ApplicationWindow {
             "menuView": "视图",
             "menuSettings": "设置",
             "menuHelp": "帮助",
+            "menuOpenSgf": "打开 SGF...",
             "menuSaveSgf": "保存 SGF...",
             "menuExit": "退出",
+            "menuBoardSize": "设置棋盘大小...",
             "menuUndo": "撤销",
             "menuDeleteNode": "删除当前节点",
             "menuClearBoard": "清空棋盘",
@@ -65,8 +67,23 @@ ApplicationWindow {
             "sgfFileFilter": "SGF 文件 (*.sgf)",
             "allFileFilter": "所有文件 (*)",
             "sgfSaveTitle": "保存 SGF",
+            "sgfOpenTitle": "打开 SGF",
             "sgfSaved": "SGF 已保存",
             "sgfSaveFailed": "SGF 保存失败",
+            "sgfLoaded": "SGF 已读取",
+            "sgfLoadFailed": "SGF 读取失败",
+            "unsavedGameTitle": "保存棋谱",
+            "confirmSaveGame": "是否保存棋谱",
+            "save": "保存",
+            "dontSave": "不保存",
+            "cancel": "取消",
+            "confirm": "确定",
+            "custom": "其他",
+            "boardSizeDialogTitle": "设置棋盘大小",
+            "boardSizeX": "长",
+            "boardSizeY": "宽",
+            "boardSizeZ": "高",
+            "boardSizeCubicOnly": "当前版本只支持长宽高相同的棋盘。",
             "moveNumberDisplay": "手数显示",
             "moveNumberAll": "全部手数",
             "moveNumberLastOnly": "仅最后一手",
@@ -80,7 +97,10 @@ ApplicationWindow {
             "helpKeyRotate": "←/→：水平旋转镜头",
             "helpKeyResetCamera": "Space：重置镜头",
             "helpKeyDelete": "Backspace：删除当前节点",
-            "helpKeyMoveLabels": "M：切换棋子手数显示"
+            "helpKeyMoveLabels": "M：切换棋子手数显示",
+            "helpKeyOpenSgf": "Ctrl+O：打开 SGF",
+            "helpKeySaveSgf": "Ctrl+S：保存 SGF",
+            "helpKeyBoardSize": "Ctrl+I：设置棋盘大小"
         },
         "en": {
             "windowTitle": "Lizzie3D",
@@ -89,8 +109,10 @@ ApplicationWindow {
             "menuView": "View",
             "menuSettings": "Settings",
             "menuHelp": "Help",
+            "menuOpenSgf": "Open SGF...",
             "menuSaveSgf": "Save SGF...",
             "menuExit": "Exit",
+            "menuBoardSize": "Set board size...",
             "menuUndo": "Undo",
             "menuDeleteNode": "Delete current node",
             "menuClearBoard": "Clear board",
@@ -132,8 +154,23 @@ ApplicationWindow {
             "sgfFileFilter": "SGF files (*.sgf)",
             "allFileFilter": "All files (*)",
             "sgfSaveTitle": "Save SGF",
+            "sgfOpenTitle": "Open SGF",
             "sgfSaved": "SGF saved",
             "sgfSaveFailed": "Failed to save SGF",
+            "sgfLoaded": "SGF loaded",
+            "sgfLoadFailed": "Failed to load SGF",
+            "unsavedGameTitle": "Save game record",
+            "confirmSaveGame": "Save game record?",
+            "save": "Save",
+            "dontSave": "Don't save",
+            "cancel": "Cancel",
+            "confirm": "OK",
+            "custom": "Custom",
+            "boardSizeDialogTitle": "Set board size",
+            "boardSizeX": "Length",
+            "boardSizeY": "Width",
+            "boardSizeZ": "Height",
+            "boardSizeCubicOnly": "This version only supports equal length, width, and height.",
             "moveNumberDisplay": "Move labels",
             "moveNumberAll": "All move numbers",
             "moveNumberLastOnly": "Last move only",
@@ -147,24 +184,44 @@ ApplicationWindow {
             "helpKeyRotate": "Left/Right: rotate the camera horizontally",
             "helpKeyResetCamera": "Space: reset camera",
             "helpKeyDelete": "Backspace: delete current node",
-            "helpKeyMoveLabels": "M: switch move-number display"
+            "helpKeyMoveLabels": "M: switch move-number display",
+            "helpKeyOpenSgf": "Ctrl+O: open SGF",
+            "helpKeySaveSgf": "Ctrl+S: save SGF",
+            "helpKeyBoardSize": "Ctrl+I: set board size"
         }
     })
 
     title: root.windowTitleText()
+    property bool gameDirty: false
+    property bool suppressUnsavedPrompt: false
+    property bool saveDialogClosesApp: false
+
+    onClosing: function(event) {
+        if (gameDirty && !suppressUnsavedPrompt) {
+            event.accepted = false
+            unsavedSgfDialog.open()
+        }
+    }
 
     menuBar: MenuBar {
         Menu {
             title: root.trText("menuFile")
 
             Action {
+                text: root.trText("menuOpenSgf")
+                shortcut: "Ctrl+O"
+                onTriggered: root.openLoadSgfDialog()
+            }
+
+            Action {
                 text: root.trText("menuSaveSgf")
+                shortcut: "Ctrl+S"
                 onTriggered: root.openSaveSgfDialog()
             }
 
             Action {
                 text: root.trText("menuExit")
-                onTriggered: Qt.quit()
+                onTriggered: root.requestQuit()
             }
         }
 
@@ -208,6 +265,14 @@ ApplicationWindow {
             title: root.trText("menuSettings")
 
             Action {
+                text: root.trText("menuBoardSize")
+                shortcut: "Ctrl+I"
+                onTriggered: root.openBoardSizeDialog()
+            }
+
+            MenuSeparator {}
+
+            Action {
                 text: root.trText("menuResetVisual")
                 onTriggered: root.resetVisualSettings()
             }
@@ -244,6 +309,9 @@ ApplicationWindow {
             Action { text: root.trText("helpKeyResetCamera"); enabled: false }
             Action { text: root.trText("helpKeyDelete"); enabled: false }
             Action { text: root.trText("helpKeyMoveLabels"); enabled: false }
+            Action { text: root.trText("helpKeyOpenSgf"); enabled: false }
+            Action { text: root.trText("helpKeySaveSgf"); enabled: false }
+            Action { text: root.trText("helpKeyBoardSize"); enabled: false }
         }
     }
 
@@ -254,6 +322,19 @@ ApplicationWindow {
         defaultSuffix: "sgf"
         nameFilters: [root.trText("sgfFileFilter"), root.trText("allFileFilter")]
         onAccepted: root.saveSgfToFile(selectedFile)
+        onRejected: {
+            root.saveDialogClosesApp = false
+            focusBoardInput()
+        }
+    }
+
+    FileDialog {
+        id: loadSgfDialog
+        title: root.trText("sgfOpenTitle")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [root.trText("sgfFileFilter"), root.trText("allFileFilter")]
+        onAccepted: root.loadSgfFromFile(selectedFile)
+        onRejected: focusBoardInput()
     }
 
     Dialog {
@@ -278,6 +359,223 @@ ApplicationWindow {
         }
 
         onRejected: focusBoardInput()
+    }
+
+    Dialog {
+        id: unsavedSgfDialog
+        modal: true
+        title: root.trText("unsavedGameTitle")
+        closePolicy: Popup.CloseOnEscape
+        width: Math.min(420, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 14
+
+            Label {
+                text: root.trText("confirmSaveGame")
+                color: "#17212a"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: root.trText("save")
+                    onClicked: {
+                        unsavedSgfDialog.close()
+                        root.openSaveSgfDialog(true)
+                    }
+                }
+
+                Button {
+                    text: root.trText("dontSave")
+                    onClicked: {
+                        unsavedSgfDialog.close()
+                        root.closeWithoutSaving()
+                    }
+                }
+
+                Button {
+                    text: root.trText("cancel")
+                    onClicked: {
+                        unsavedSgfDialog.close()
+                        focusBoardInput()
+                    }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: boardSizeDialog
+        modal: true
+        title: root.trText("boardSizeDialogTitle")
+        closePolicy: Popup.CloseOnEscape
+        width: Math.min(620, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        property int selectedPreset: root.defaultBoardSize
+        property string errorText: ""
+
+        function showForCurrentBoard() {
+            var current = root.boardSize
+            selectedPreset = (current === 5 || current === 7 || current === 9) ? current : 0
+            sizeXSpin.value = current
+            sizeYSpin.value = current
+            sizeZSpin.value = current
+            errorText = ""
+            open()
+        }
+
+        function setPreset(size) {
+            selectedPreset = size
+            sizeXSpin.value = size
+            sizeYSpin.value = size
+            sizeZSpin.value = size
+            errorText = ""
+        }
+
+        function applySize() {
+            var xSize = sizeXSpin.value
+            var ySize = sizeYSpin.value
+            var zSize = sizeZSpin.value
+            if (xSize !== ySize || xSize !== zSize) {
+                selectedPreset = 0
+                errorText = root.trText("boardSizeCubicOnly")
+                return
+            }
+
+            close()
+            root.setBoardSize(xSize)
+            focusBoardInput()
+        }
+
+        ButtonGroup { id: boardSizePresetGroup }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 14
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                RadioButton {
+                    text: "5x5x5"
+                    checked: boardSizeDialog.selectedPreset === 5
+                    ButtonGroup.group: boardSizePresetGroup
+                    onClicked: boardSizeDialog.setPreset(5)
+                }
+
+                RadioButton {
+                    text: "7x7x7"
+                    checked: boardSizeDialog.selectedPreset === 7
+                    ButtonGroup.group: boardSizePresetGroup
+                    onClicked: boardSizeDialog.setPreset(7)
+                }
+
+                RadioButton {
+                    text: "9x9x9"
+                    checked: boardSizeDialog.selectedPreset === 9
+                    ButtonGroup.group: boardSizePresetGroup
+                    onClicked: boardSizeDialog.setPreset(9)
+                }
+
+                RadioButton {
+                    text: root.trText("custom")
+                    checked: boardSizeDialog.selectedPreset === 0
+                    ButtonGroup.group: boardSizePresetGroup
+                    onClicked: boardSizeDialog.selectedPreset = 0
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Label {
+                    text: root.trText("boardSizeX")
+                    color: "#24313a"
+                }
+
+                SpinBox {
+                    id: sizeXSpin
+                    from: root.minBoardSize
+                    to: root.maxBoardSize
+                    editable: true
+                    Layout.preferredWidth: 92
+                    onValueModified: boardSizeDialog.selectedPreset = 0
+                }
+
+                Label {
+                    text: "x " + root.trText("boardSizeY")
+                    color: "#24313a"
+                }
+
+                SpinBox {
+                    id: sizeYSpin
+                    from: root.minBoardSize
+                    to: root.maxBoardSize
+                    editable: true
+                    Layout.preferredWidth: 92
+                    onValueModified: boardSizeDialog.selectedPreset = 0
+                }
+
+                Label {
+                    text: "x " + root.trText("boardSizeZ")
+                    color: "#24313a"
+                }
+
+                SpinBox {
+                    id: sizeZSpin
+                    from: root.minBoardSize
+                    to: root.maxBoardSize
+                    editable: true
+                    Layout.preferredWidth: 92
+                    onValueModified: boardSizeDialog.selectedPreset = 0
+                }
+
+                Item { Layout.fillWidth: true }
+            }
+
+            Label {
+                text: boardSizeDialog.errorText
+                visible: boardSizeDialog.errorText !== ""
+                color: "#b3261e"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Item { Layout.fillWidth: true }
+
+                Button {
+                    text: root.trText("confirm")
+                    highlighted: true
+                    Layout.preferredWidth: 120
+                    onClicked: boardSizeDialog.applySize()
+                }
+
+                Button {
+                    text: root.trText("cancel")
+                    Layout.preferredWidth: 96
+                    onClicked: {
+                        boardSizeDialog.close()
+                        focusBoardInput()
+                    }
+                }
+            }
+        }
     }
 
     readonly property int minBoardSize: 1
@@ -404,6 +702,36 @@ ApplicationWindow {
             inputLayer.forceActiveFocus()
     }
 
+    function requestQuit() {
+        root.close()
+    }
+
+    function closeWithoutSaving() {
+        suppressUnsavedPrompt = true
+        root.close()
+    }
+
+    function openBoardSizeDialog() {
+        boardSizeDialog.showForCurrentBoard()
+    }
+
+    function itemContainsInputPoint(item, sourceItem, x, y) {
+        if (!item || !sourceItem || !item.visible || item.width <= 0 || item.height <= 0)
+            return false
+
+        var point = item.mapFromItem(sourceItem, x, y)
+        return point.x >= 0 && point.x <= item.width && point.y >= 0 && point.y <= item.height
+    }
+
+    function boardInputBlocked(sourceItem, x, y) {
+        return itemContainsInputPoint(axisGizmo, sourceItem, x, y)
+               || itemContainsInputPoint(infoPanel, sourceItem, x, y)
+               || itemContainsInputPoint(branchPanel, sourceItem, x, y)
+               || itemContainsInputPoint(visualPanel, sourceItem, x, y)
+               || itemContainsInputPoint(clipPanel, sourceItem, x, y)
+               || itemContainsInputPoint(commandToolbar, sourceItem, x, y)
+    }
+
     function trText(key) {
         language
         var table = translations[language] || translations.zh
@@ -443,7 +771,7 @@ ApplicationWindow {
         mainAxisLabels = buildMainAxisLabels()
     }
 
-    function setBoardSize(size) {
+    function setBoardSize(size, markDirty) {
         var nextSize = Math.round(clamp(size, minBoardSize, maxBoardSize))
         if (nextSize === boardSize)
             return
@@ -454,6 +782,8 @@ ApplicationWindow {
         resetGameTree()
         rebuildBoardGeometry()
         resetCamera()
+        if (markDirty !== false)
+            gameDirty = true
     }
 
     function hasActiveClip() {
@@ -798,6 +1128,7 @@ ApplicationWindow {
         currentNodeId = node.id
         rebuildPositionFromNode(currentNodeId)
         rebuildTreeLayout()
+        gameDirty = true
     }
 
     function undoMove() {
@@ -865,10 +1196,14 @@ ApplicationWindow {
         clearHover()
         rebuildPositionFromNode(currentNodeId)
         rebuildTreeLayout()
+        gameDirty = true
     }
 
     function clearBoard() {
+        var changed = hasAnyMoves()
         resetGameTree()
+        if (changed)
+            gameDirty = true
     }
 
     function gotoNode(id) {
@@ -962,6 +1297,7 @@ ApplicationWindow {
         if (changed) {
             gameNodes = gameNodes.slice()
             rebuildTreeLayout()
+            gameDirty = true
         }
     }
 
@@ -1163,6 +1499,10 @@ ApplicationWindow {
         return quaternionFromBasis(right, up, normal)
     }
 
+    function axisBillboardRotation() {
+        return quaternionFromBasis(cameraRightVector(), cameraUpVector(), cameraBackVector())
+    }
+
     function stoneBillboardScale() {
         return stoneModelScale() * 0.78
     }
@@ -1262,20 +1602,304 @@ ApplicationWindow {
         return text + ")\n"
     }
 
-    function openSaveSgfDialog() {
+    function openLoadSgfDialog() {
+        loadSgfDialog.open()
+    }
+
+    function openSaveSgfDialog(closeAfterSave) {
+        saveDialogClosesApp = closeAfterSave === true
         saveSgfDialog.currentFile = "lizzie3d-" + boardSize + "x" + boardSize + "x" + boardSize + ".sgf"
         saveSgfDialog.open()
     }
 
     function saveSgfToFile(url) {
+        var shouldClose = saveDialogClosesApp
+        saveDialogClosesApp = false
+
         if (fileIo.writeTextFile(url, buildSgf())) {
+            gameDirty = false
             statusMode = "message"
             statusMessage = trText("sgfSaved") + ": " + url
+            if (shouldClose) {
+                suppressUnsavedPrompt = true
+                root.close()
+                return
+            }
         } else {
             statusMode = "message"
             statusMessage = trText("sgfSaveFailed") + ": " + fileIo.lastError
         }
         focusBoardInput()
+    }
+
+    function firstSgfValue(properties, key) {
+        var values = properties[key]
+        return values && values.length > 0 ? values[0] : ""
+    }
+
+    function parseSgfBoardSize(value) {
+        var parts = String(value).split(":")
+        if (parts.length !== 1 && parts.length !== 3)
+            return -1
+
+        var size = -1
+        for (var i = 0; i < parts.length; ++i) {
+            var part = parseInt(parts[i], 10)
+            if (isNaN(part))
+                return -1
+            if (size < 0)
+                size = part
+            else if (part !== size)
+                return -1
+        }
+        return size
+    }
+
+    function parseSgf(text) {
+        var sgf = String(text)
+        var pos = 0
+        var parsedBoardSize = minBoardSize
+        var maxCoordinate = 0
+        var parseError = ""
+        var nodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
+                       "key": "", "player": 0, "moveNumber": 0 }]
+        var nextId = 1
+
+        function fail(message) {
+            if (parseError === "")
+                parseError = message
+        }
+
+        function skipWhitespace() {
+            while (pos < sgf.length && /\s/.test(sgf.charAt(pos)))
+                pos += 1
+        }
+
+        function isPropertyCharacter(ch) {
+            return /[A-Za-z]/.test(ch)
+        }
+
+        function parseIdentifier() {
+            var start = pos
+            while (pos < sgf.length && isPropertyCharacter(sgf.charAt(pos)))
+                pos += 1
+            return sgf.substring(start, pos).toUpperCase()
+        }
+
+        function parsePropertyValue() {
+            if (sgf.charAt(pos) !== "[") {
+                fail("Expected property value.")
+                return ""
+            }
+
+            pos += 1
+            var value = ""
+            while (pos < sgf.length) {
+                var ch = sgf.charAt(pos)
+                pos += 1
+
+                if (ch === "\\") {
+                    if (pos >= sgf.length)
+                        break
+
+                    var escaped = sgf.charAt(pos)
+                    pos += 1
+                    if (escaped === "\r") {
+                        if (sgf.charAt(pos) === "\n")
+                            pos += 1
+                    } else if (escaped !== "\n") {
+                        value += escaped
+                    }
+                } else if (ch === "]") {
+                    return value
+                } else {
+                    value += ch
+                }
+            }
+
+            fail("Unclosed property value.")
+            return value
+        }
+
+        function parseNodeProperties() {
+            var properties = ({})
+            while (pos < sgf.length && parseError === "") {
+                skipWhitespace()
+                if (!isPropertyCharacter(sgf.charAt(pos)))
+                    break
+
+                var key = parseIdentifier()
+                var values = []
+                skipWhitespace()
+                while (sgf.charAt(pos) === "[" && parseError === "") {
+                    values.push(parsePropertyValue())
+                    skipWhitespace()
+                }
+
+                if (values.length === 0) {
+                    fail("Missing value for property " + key + ".")
+                    return properties
+                }
+
+                properties[key] = (properties[key] || []).concat(values)
+            }
+            return properties
+        }
+
+        function updateSizeFromProperties(properties) {
+            var sizeValue = firstSgfValue(properties, "SZ")
+            if (sizeValue === "")
+                return
+
+            var size = parseSgfBoardSize(sizeValue)
+            if (size < minBoardSize || size > maxBoardSize) {
+                fail("Unsupported board size: " + sizeValue + ".")
+                return
+            }
+            parsedBoardSize = size
+        }
+
+        function moveFromProperties(properties) {
+            var value = ""
+            var player = 0
+            if (properties["B"] && properties["B"].length > 0) {
+                value = properties["B"][0]
+                player = 1
+            } else if (properties["W"] && properties["W"].length > 0) {
+                value = properties["W"][0]
+                player = 2
+            } else {
+                return null
+            }
+
+            var coordinate = String(value).trim().toLowerCase()
+            if (coordinate.length === 0)
+                return null
+            if (coordinate.length < 3) {
+                fail("Expected 3D coordinate: " + value + ".")
+                return null
+            }
+
+            var base = "a".charCodeAt(0)
+            var x = coordinate.charCodeAt(0) - base
+            var y = coordinate.charCodeAt(1) - base
+            var z = coordinate.charCodeAt(2) - base
+            if (x < 0 || y < 0 || z < 0 || x >= maxBoardSize || y >= maxBoardSize || z >= maxBoardSize) {
+                fail("Invalid coordinate: " + value + ".")
+                return null
+            }
+
+            maxCoordinate = Math.max(maxCoordinate, x, y, z)
+            return { "x": x, "y": y, "z": z, "player": player }
+        }
+
+        function appendParsedNode(parentId, move) {
+            var parent = nodes[parentId]
+            if (!parent) {
+                fail("Invalid SGF branch.")
+                return parentId
+            }
+
+            var id = nextId
+            nextId += 1
+            var node = {
+                "id": id,
+                "parent": parentId,
+                "children": [],
+                "x": move.x,
+                "y": move.y,
+                "z": move.z,
+                "key": keyFor(move.x, move.y, move.z),
+                "player": move.player,
+                "moveNumber": parent.moveNumber + 1
+            }
+            parent.children.push(id)
+            nodes[id] = node
+            return id
+        }
+
+        function parseGameTree(parentId) {
+            skipWhitespace()
+            if (sgf.charAt(pos) !== "(") {
+                fail("Expected game tree.")
+                return
+            }
+
+            pos += 1
+            var currentParent = parentId
+            while (pos < sgf.length && parseError === "") {
+                skipWhitespace()
+                var ch = sgf.charAt(pos)
+                if (ch === ";") {
+                    pos += 1
+                    var properties = parseNodeProperties()
+                    updateSizeFromProperties(properties)
+                    var move = moveFromProperties(properties)
+                    if (move)
+                        currentParent = appendParsedNode(currentParent, move)
+                } else if (ch === "(") {
+                    parseGameTree(currentParent)
+                } else if (ch === ")") {
+                    pos += 1
+                    return
+                } else if (ch === "") {
+                    break
+                } else {
+                    pos += 1
+                }
+            }
+
+            if (parseError === "")
+                fail("Unclosed game tree.")
+        }
+
+        skipWhitespace()
+        parseGameTree(0)
+        if (parseError !== "")
+            return { "ok": false, "error": parseError }
+
+        var targetBoardSize = Math.max(parsedBoardSize, maxCoordinate + 1)
+        if (targetBoardSize < minBoardSize || targetBoardSize > maxBoardSize)
+            return { "ok": false, "error": "Unsupported board size." }
+
+        return { "ok": true, "nodes": nodes, "nextNodeId": nextId, "boardSize": targetBoardSize }
+    }
+
+    function applyParsedSgf(parsed, url) {
+        setBoardSize(parsed.boardSize, false)
+        resetClipCounts()
+        clearHover()
+
+        gameNodes = parsed.nodes
+        nextNodeId = parsed.nextNodeId
+        currentNodeId = 0
+        rebuildPositionFromNode(currentNodeId)
+        rebuildTreeLayout()
+        gotoLastMove()
+        gameDirty = false
+        statusMode = "message"
+        statusMessage = trText("sgfLoaded") + ": " + url
+        focusBoardInput()
+    }
+
+    function loadSgfFromFile(url) {
+        var text = fileIo.readTextFile(url)
+        if (fileIo.lastError !== "") {
+            statusMode = "message"
+            statusMessage = trText("sgfLoadFailed") + ": " + fileIo.lastError
+            focusBoardInput()
+            return
+        }
+
+        var parsed = parseSgf(text)
+        if (!parsed.ok) {
+            statusMode = "message"
+            statusMessage = trText("sgfLoadFailed") + ": " + parsed.error
+            focusBoardInput()
+            return
+        }
+
+        applyParsedSgf(parsed, url)
     }
 
     function mainAxisOrigin() {
@@ -1464,19 +2088,23 @@ ApplicationWindow {
         refreshAxisCamera()
     }
 
-    function refreshAxisCamera() {
-        if (!axisGizmo.axisCamera)
+    function refreshSmallAxisCamera(camera, distance) {
+        if (!camera)
             return
 
         var yaw = cameraYaw * Math.PI / 180
         var pitch = cameraPitch * Math.PI / 180
         var cp = Math.cos(pitch)
-        var distance = 320
-        axisGizmo.axisCamera.position = Qt.vector3d(
+        camera.position = Qt.vector3d(
             distance * Math.sin(yaw) * cp,
             distance * Math.sin(pitch),
             distance * Math.cos(yaw) * cp)
-        axisGizmo.axisCamera.lookAt(Qt.vector3d(0, 0, 0))
+        camera.lookAt(Qt.vector3d(0, 0, 0))
+    }
+
+    function refreshAxisCamera() {
+        refreshSmallAxisCamera(axisGizmo.axisCamera, 320)
+        refreshSmallAxisCamera(clipPanel.clipCamera, 230)
     }
 
     function defaultCameraDistance() {
@@ -1544,9 +2172,9 @@ ApplicationWindow {
         var amount = cameraDistance / 760
 
         cameraTarget = Qt.vector3d(
-            cameraTarget.x - deltaX * amount * rightX + deltaY * amount * forwardX,
+            cameraTarget.x - deltaX * amount * rightX - deltaY * amount * forwardX,
             cameraTarget.y,
-            cameraTarget.z - deltaX * amount * rightZ + deltaY * amount * forwardZ)
+            cameraTarget.z - deltaX * amount * rightZ - deltaY * amount * forwardZ)
         refreshCamera()
     }
 
