@@ -11,6 +11,56 @@ ApplicationWindow {
     color: "#d8e1e6"
     title: "Lizzie3D 7x7x7 Board Demo"
 
+    menuBar: MenuBar {
+        Menu {
+            title: "文件"
+
+            Action {
+                text: "退出"
+                onTriggered: Qt.quit()
+            }
+        }
+
+        Menu {
+            title: "编辑"
+
+            Action {
+                text: "撤销"
+                enabled: root.stoneCount > 0
+                onTriggered: root.undoMove()
+            }
+
+            Action {
+                text: "清空棋盘"
+                enabled: root.stoneCount > 0
+                onTriggered: root.clearBoard()
+            }
+        }
+
+        Menu {
+            title: "视图"
+
+            Action {
+                text: "重置镜头"
+                onTriggered: root.resetCamera()
+            }
+
+            Action {
+                text: "重置裁剪层"
+                onTriggered: root.resetClipCounts()
+            }
+        }
+
+        Menu {
+            title: "设置"
+
+            Action {
+                text: "重置视觉设置"
+                onTriggered: root.resetVisualSettings()
+            }
+        }
+    }
+
     property int boardSize: 7
     property real spacing: 72
     property real extent: (boardSize - 1) * spacing
@@ -32,11 +82,18 @@ ApplicationWindow {
 
     property real cameraYaw: 42
     property real cameraPitch: 28
-    property real cameraDistance: 980
+    property real cameraDistance: 560
     property vector3d cameraTarget: Qt.vector3d(0, 0, 0)
-    property real stoneScale: 0.38
-    property real gridOpacity: 0.34
-    property real hiddenLayerTransparency: 0.86
+    readonly property real defaultStoneScale: 0.38
+    readonly property real defaultGridOpacity: 0.34
+    readonly property real defaultHiddenLayerTransparency: 0.86
+    readonly property bool defaultHideGridLines: false
+    readonly property bool defaultHideGridPoints: false
+    property real stoneScale: defaultStoneScale
+    property real gridOpacity: defaultGridOpacity
+    property real hiddenLayerTransparency: defaultHiddenLayerTransparency
+    property bool hideGridLines: defaultHideGridLines
+    property bool hideGridPoints: defaultHideGridPoints
     property int clipRevision: 0
     property int clipPosX: 0
     property int clipNegX: 0
@@ -66,7 +123,15 @@ ApplicationWindow {
     }
 
     function hiddenLayerOpacity() {
-        return clamp(1 - hiddenLayerTransparency, 0.04, 1)
+        return clamp(1 - hiddenLayerTransparency, 0, 1)
+    }
+
+    function resetVisualSettings() {
+        stoneScale = defaultStoneScale
+        gridOpacity = defaultGridOpacity
+        hiddenLayerTransparency = defaultHiddenLayerTransparency
+        hideGridLines = defaultHideGridLines
+        hideGridPoints = defaultHideGridPoints
     }
 
     function hasActiveClip() {
@@ -75,11 +140,15 @@ ApplicationWindow {
     }
 
     function gridRodOpacity(x1, y1, z1, x2, y2, z2) {
+        if (hideGridLines)
+            return 0
         var clipped = isClipped(x1, y1, z1) || isClipped(x2, y2, z2)
         return clipped ? gridOpacity * hiddenLayerOpacity() : gridOpacity
     }
 
     function emptyPointOpacity(clipped, hovered) {
+        if (hideGridPoints)
+            return 0
         if (hovered)
             return 0.82
         return clipped ? gridOpacity * hiddenLayerOpacity() : Math.max(0.08, gridOpacity * 0.36)
@@ -395,7 +464,7 @@ ApplicationWindow {
     function resetCamera() {
         cameraYaw = 42
         cameraPitch = 28
-        cameraDistance = 980
+        cameraDistance = 560
         cameraTarget = Qt.vector3d(0, 0, 0)
         refreshCamera()
     }
@@ -1089,13 +1158,26 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            Slider {
-                from: 0.26
-                to: 0.56
-                value: root.stoneScale
-                stepSize: 0.01
+            RowLayout {
                 Layout.fillWidth: true
-                onMoved: root.stoneScale = value
+
+                Slider {
+                    from: 0.26
+                    to: 0.56
+                    value: root.stoneScale
+                    stepSize: 0.01
+                    Layout.fillWidth: true
+                    onMoved: root.stoneScale = value
+                }
+
+                Button {
+                    text: "Reset"
+                    Layout.preferredWidth: 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.stoneScale = root.defaultStoneScale
+                    }
+                }
             }
 
             Label {
@@ -1105,13 +1187,26 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            Slider {
-                from: 0.12
-                to: 0.9
-                value: root.gridOpacity
-                stepSize: 0.01
+            RowLayout {
                 Layout.fillWidth: true
-                onMoved: root.gridOpacity = value
+
+                Slider {
+                    from: 0.12
+                    to: 0.9
+                    value: root.gridOpacity
+                    stepSize: 0.01
+                    Layout.fillWidth: true
+                    onMoved: root.gridOpacity = value
+                }
+
+                Button {
+                    text: "Reset"
+                    Layout.preferredWidth: 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.gridOpacity = root.defaultGridOpacity
+                    }
+                }
             }
         }
     }
@@ -1122,7 +1217,7 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.margins: 18
         width: 300
-        height: 238
+        height: 272
         radius: 8
         color: "#f3f7f9"
         border.color: "#b9c8d0"
@@ -1147,29 +1242,80 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            Slider {
-                from: 0.26
-                to: 0.56
-                value: root.stoneScale
-                stepSize: 0.01
+            RowLayout {
                 Layout.fillWidth: true
-                onMoved: root.stoneScale = value
+
+                Slider {
+                    from: 0.26
+                    to: 0.56
+                    value: root.stoneScale
+                    stepSize: 0.01
+                    Layout.fillWidth: true
+                    onMoved: root.stoneScale = value
+                }
+
+                Button {
+                    text: "Reset"
+                    Layout.preferredWidth: 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.stoneScale = root.defaultStoneScale
+                    }
+                }
             }
 
             Label {
-                text: "Grid opacity  " + Math.round(root.gridOpacity * 100) + "%"
+                text: "Grid/point opacity  " + Math.round(root.gridOpacity * 100) + "%"
                 color: "#2f414c"
                 font.pixelSize: 14
                 Layout.fillWidth: true
             }
 
-            Slider {
-                from: 0.12
-                to: 0.9
-                value: root.gridOpacity
-                stepSize: 0.01
+            RowLayout {
                 Layout.fillWidth: true
-                onMoved: root.gridOpacity = value
+
+                Slider {
+                    from: 0.12
+                    to: 0.9
+                    value: root.gridOpacity
+                    stepSize: 0.01
+                    Layout.fillWidth: true
+                    onMoved: root.gridOpacity = value
+                }
+
+                Button {
+                    text: "Reset"
+                    Layout.preferredWidth: 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.gridOpacity = root.defaultGridOpacity
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                CheckBox {
+                    text: "Hide lines"
+                    checked: root.hideGridLines
+                    Layout.fillWidth: true
+                    onToggled: {
+                        inputLayer.forceActiveFocus()
+                        root.hideGridLines = checked
+                    }
+                }
+
+                CheckBox {
+                    text: "Hide points"
+                    checked: root.hideGridPoints
+                    Layout.fillWidth: true
+                    onToggled: {
+                        inputLayer.forceActiveFocus()
+                        root.hideGridPoints = checked
+                    }
+                }
             }
 
             Label {
@@ -1179,13 +1325,26 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            Slider {
-                from: 0.2
-                to: 0.98
-                value: root.hiddenLayerTransparency
-                stepSize: 0.01
+            RowLayout {
                 Layout.fillWidth: true
-                onMoved: root.hiddenLayerTransparency = value
+
+                Slider {
+                    from: 0.2
+                    to: 1.0
+                    value: root.hiddenLayerTransparency
+                    stepSize: 0.01
+                    Layout.fillWidth: true
+                    onMoved: root.hiddenLayerTransparency = value
+                }
+
+                Button {
+                    text: "Reset"
+                    Layout.preferredWidth: 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.hiddenLayerTransparency = root.defaultHiddenLayerTransparency
+                    }
+                }
             }
         }
     }
@@ -1197,7 +1356,7 @@ ApplicationWindow {
         anchors.top: visualPanel.bottom
         anchors.topMargin: 14
         width: 300
-        height: 526
+        height: 492
         radius: 8
         color: "#f3f7f9"
         border.color: "#b9c8d0"
