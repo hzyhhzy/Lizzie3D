@@ -21,6 +21,7 @@ ApplicationWindow {
             "menuEdit": "编辑",
             "menuView": "视图",
             "menuSettings": "设置",
+            "menuHelp": "帮助",
             "menuSaveSgf": "保存 SGF...",
             "menuExit": "退出",
             "menuUndo": "撤销",
@@ -71,7 +72,15 @@ ApplicationWindow {
             "moveNumberLastOnly": "仅最后一手",
             "moveNumberHidden": "隐藏数字",
             "stoneLighting": "棋子打光",
-            "lightFollowsCamera": "灯光跟随镜头"
+            "lightFollowsCamera": "灯光跟随镜头",
+            "helpKeyMoveLateral": "W/S：沿当前视角上下移动",
+            "helpKeyMoveSide": "A/D：沿当前视角左右移动",
+            "helpKeyMoveDepth": "Q/E：沿当前视角前后移动",
+            "helpKeyClip": "X/Z：减少/增加当前面向方向的裁剪层",
+            "helpKeyRotate": "←/→：水平旋转镜头",
+            "helpKeyResetCamera": "Space：重置镜头",
+            "helpKeyDelete": "Backspace：删除当前节点",
+            "helpKeyMoveLabels": "M：切换棋子手数显示"
         },
         "en": {
             "windowTitle": "Lizzie3D",
@@ -79,6 +88,7 @@ ApplicationWindow {
             "menuEdit": "Edit",
             "menuView": "View",
             "menuSettings": "Settings",
+            "menuHelp": "Help",
             "menuSaveSgf": "Save SGF...",
             "menuExit": "Exit",
             "menuUndo": "Undo",
@@ -129,7 +139,15 @@ ApplicationWindow {
             "moveNumberLastOnly": "Last move only",
             "moveNumberHidden": "No numbers",
             "stoneLighting": "Light stones",
-            "lightFollowsCamera": "Light follows camera"
+            "lightFollowsCamera": "Light follows camera",
+            "helpKeyMoveLateral": "W/S: move up/down relative to the camera",
+            "helpKeyMoveSide": "A/D: move left/right relative to the camera",
+            "helpKeyMoveDepth": "Q/E: move forward/back relative to the camera",
+            "helpKeyClip": "X/Z: decrease/increase clip layers on the facing axis",
+            "helpKeyRotate": "Left/Right: rotate the camera horizontally",
+            "helpKeyResetCamera": "Space: reset camera",
+            "helpKeyDelete": "Backspace: delete current node",
+            "helpKeyMoveLabels": "M: switch move-number display"
         }
     })
 
@@ -214,6 +232,19 @@ ApplicationWindow {
                 }
             }
         }
+
+        Menu {
+            title: root.trText("menuHelp")
+
+            Action { text: root.trText("helpKeyMoveLateral"); enabled: false }
+            Action { text: root.trText("helpKeyMoveSide"); enabled: false }
+            Action { text: root.trText("helpKeyMoveDepth"); enabled: false }
+            Action { text: root.trText("helpKeyClip"); enabled: false }
+            Action { text: root.trText("helpKeyRotate"); enabled: false }
+            Action { text: root.trText("helpKeyResetCamera"); enabled: false }
+            Action { text: root.trText("helpKeyDelete"); enabled: false }
+            Action { text: root.trText("helpKeyMoveLabels"); enabled: false }
+        }
     }
 
     FileDialog {
@@ -243,10 +274,10 @@ ApplicationWindow {
 
         onAccepted: {
             root.deleteCurrentNode(true)
-            inputLayer.forceActiveFocus()
+            focusBoardInput()
         }
 
-        onRejected: inputLayer.forceActiveFocus()
+        onRejected: focusBoardInput()
     }
 
     readonly property int minBoardSize: 1
@@ -295,9 +326,9 @@ ApplicationWindow {
     onCompactLayoutChanged: rebuildTreeLayout()
 
     property var points: []
-    property var rods: []
     property var mainAxisLabels: []
     property var stones: ({})
+    property var stoneItems: []
     property var gameNodes: []
     property var treeNodes: []
     property var treeEdges: []
@@ -331,7 +362,6 @@ ApplicationWindow {
     readonly property real defaultStoneScale: defaultStoneModelScale * quick3DPrimitiveDiameter / spacing
     readonly property real minStoneScale: minStoneModelScale * quick3DPrimitiveDiameter / spacing
     readonly property real defaultGridOpacity: 0.25
-    readonly property real selectionSphereScale: gridPointSphereScale
     readonly property real defaultHiddenLayerTransparency: 0.86
     readonly property bool defaultHideGridLines: false
     readonly property bool defaultHideGridPoints: true
@@ -367,6 +397,11 @@ ApplicationWindow {
 
     function clamp(value, low, high) {
         return Math.max(low, Math.min(high, value))
+    }
+
+    function focusBoardInput() {
+        if (inputLayer)
+            inputLayer.forceActiveFocus()
     }
 
     function trText(key) {
@@ -405,7 +440,6 @@ ApplicationWindow {
 
     function rebuildBoardGeometry() {
         points = buildPoints()
-        rods = buildRods()
         mainAxisLabels = buildMainAxisLabels()
     }
 
@@ -427,33 +461,93 @@ ApplicationWindow {
         return clipPosX + clipNegX + clipPosY + clipNegY + clipPosZ + clipNegZ > 0
     }
 
-    function gridRodHighlighted(axis, x1, y1, z1) {
-        hoverKey
-        if (hoverKey === "")
-            return false
+    function gridLineRgb(axis) {
         if (axis === 0)
-            return y1 === hoverY && z1 === hoverZ
+            return Qt.vector3d(0x3e / 255, 0x27 / 255, 0x29 / 255)
         if (axis === 1)
-            return x1 === hoverX && z1 === hoverZ
-        return x1 === hoverX && y1 === hoverY
+            return Qt.vector3d(0x29 / 255, 0x39 / 255, 0x2c / 255)
+        return Qt.vector3d(0x28 / 255, 0x35 / 255, 0x44 / 255)
     }
 
-    function gridRodColor(axis, x1, y1, z1) {
-        if (gridRodHighlighted(axis, x1, y1, z1))
-            return "#2fb97f"
-        if (axis === 0)
-            return "#3e2729"
-        if (axis === 1)
-            return "#29392c"
-        return "#283544"
+    function appendGridLineSegment(data, axis, a, b, fixed1, fixed2) {
+        if (axis === 0) {
+            data.push(pointPosition(a, fixed1, fixed2))
+            data.push(pointPosition(b, fixed1, fixed2))
+        } else if (axis === 1) {
+            data.push(pointPosition(fixed1, a, fixed2))
+            data.push(pointPosition(fixed1, b, fixed2))
+        } else {
+            data.push(pointPosition(fixed1, fixed2, a))
+            data.push(pointPosition(fixed1, fixed2, b))
+        }
     }
 
-    function gridRodOpacity(axis, x1, y1, z1, x2, y2, z2) {
+    function appendGridLineColor(data, rgb, alpha) {
+        data.push(Qt.vector4d(rgb.x, rgb.y, rgb.z, alpha))
+        data.push(Qt.vector4d(rgb.x, rgb.y, rgb.z, alpha))
+    }
+
+    function gridLineSegmentOpacity(axis, a, b, fixed1, fixed2, highlighted) {
         if (hideGridLines)
             return 0
-        var baseOpacity = gridRodHighlighted(axis, x1, y1, z1) ? Math.max(0.9, gridOpacity) : gridOpacity
+
+        var x1 = axis === 0 ? a : fixed1
+        var y1 = axis === 1 ? a : (axis === 0 ? fixed1 : fixed2)
+        var z1 = axis === 2 ? a : fixed2
+        var x2 = axis === 0 ? b : fixed1
+        var y2 = axis === 1 ? b : (axis === 0 ? fixed1 : fixed2)
+        var z2 = axis === 2 ? b : fixed2
+        var baseOpacity = highlighted ? Math.max(0.9, gridOpacity) : gridOpacity
         var clipped = isClipped(x1, y1, z1) || isClipped(x2, y2, z2)
         return clipped ? baseOpacity * hiddenLayerOpacity() : baseOpacity
+    }
+
+    function gridLinePositions(axis) {
+        var data = []
+        for (var fixed1 = 0; fixed1 < boardSize; ++fixed1) {
+            for (var fixed2 = 0; fixed2 < boardSize; ++fixed2) {
+                for (var i = 0; i < boardSize - 1; ++i)
+                    appendGridLineSegment(data, axis, i, i + 1, fixed1, fixed2)
+            }
+        }
+        return data
+    }
+
+    function gridLineColors(axis) {
+        var data = []
+        var rgb = gridLineRgb(axis)
+        for (var fixed1 = 0; fixed1 < boardSize; ++fixed1) {
+            for (var fixed2 = 0; fixed2 < boardSize; ++fixed2) {
+                for (var i = 0; i < boardSize - 1; ++i)
+                    appendGridLineColor(data, rgb, gridLineSegmentOpacity(axis, i, i + 1, fixed1, fixed2, false))
+            }
+        }
+        return data
+    }
+
+    function hoverGridLinePositions(axis) {
+        var data = []
+        if (hoverKey === "")
+            return data
+
+        var fixed1 = axis === 0 ? hoverY : hoverX
+        var fixed2 = axis === 2 ? hoverY : hoverZ
+        for (var i = 0; i < boardSize - 1; ++i)
+            appendGridLineSegment(data, axis, i, i + 1, fixed1, fixed2)
+        return data
+    }
+
+    function hoverGridLineColors(axis) {
+        var data = []
+        if (hoverKey === "")
+            return data
+
+        var rgb = Qt.vector3d(0x2f / 255, 0xb9 / 255, 0x7f / 255)
+        var fixed1 = axis === 0 ? hoverY : hoverX
+        var fixed2 = axis === 2 ? hoverY : hoverZ
+        for (var i = 0; i < boardSize - 1; ++i)
+            appendGridLineColor(data, rgb, gridLineSegmentOpacity(axis, i, i + 1, fixed1, fixed2, true))
+        return data
     }
 
     function emptyPointOpacity(clipped, hovered) {
@@ -555,65 +649,6 @@ ApplicationWindow {
         return data
     }
 
-    function buildRods() {
-        var data = []
-        for (var xy = 0; xy < boardSize; ++xy) {
-            for (var xz = 0; xz < boardSize; ++xz) {
-                for (var xx = 0; xx < boardSize - 1; ++xx) {
-                    data.push({
-                        "axis": 0,
-                        "x": xx + 0.5,
-                        "y": xy,
-                        "z": xz,
-                        "x1": xx,
-                        "y1": xy,
-                        "z1": xz,
-                        "x2": xx + 1,
-                        "y2": xy,
-                        "z2": xz
-                    })
-                }
-            }
-        }
-        for (var yx = 0; yx < boardSize; ++yx) {
-            for (var yz = 0; yz < boardSize; ++yz) {
-                for (var yy = 0; yy < boardSize - 1; ++yy) {
-                    data.push({
-                        "axis": 1,
-                        "x": yx,
-                        "y": yy + 0.5,
-                        "z": yz,
-                        "x1": yx,
-                        "y1": yy,
-                        "z1": yz,
-                        "x2": yx,
-                        "y2": yy + 1,
-                        "z2": yz
-                    })
-                }
-            }
-        }
-        for (var zx = 0; zx < boardSize; ++zx) {
-            for (var zy = 0; zy < boardSize; ++zy) {
-                for (var zz = 0; zz < boardSize - 1; ++zz) {
-                    data.push({
-                        "axis": 2,
-                        "x": zx,
-                        "y": zy,
-                        "z": zz + 0.5,
-                        "x1": zx,
-                        "y1": zy,
-                        "z1": zz,
-                        "x2": zx,
-                        "y2": zy,
-                        "z2": zz + 1
-                    })
-                }
-            }
-        }
-        return data
-    }
-
     function stoneDataAt(x, y, z) {
         boardRevision
         var value = stones[keyFor(x, y, z)]
@@ -625,11 +660,6 @@ ApplicationWindow {
         if (!value)
             return 0
         return value.player === undefined ? value : value.player
-    }
-
-    function stoneMoveNumberAt(x, y, z) {
-        var value = stoneDataAt(x, y, z)
-        return value && value.moveNumber !== undefined ? value.moveNumber : 0
     }
 
     function isLastMoveAt(x, y, z) {
@@ -659,15 +689,24 @@ ApplicationWindow {
     function rebuildPositionFromNode(id) {
         var path = nodePath(id)
         var nextStones = ({})
+        var nextStoneItems = []
         for (var i = 0; i < path.length; ++i) {
-            nextStones[path[i].key] = {
+            var stoneItem = {
+                "x": path[i].x,
+                "y": path[i].y,
+                "z": path[i].z,
+                "key": path[i].key,
                 "player": path[i].player,
                 "moveNumber": path[i].moveNumber,
-                "nodeId": path[i].id
+                "nodeId": path[i].id,
+                "position": pointPosition(path[i].x, path[i].y, path[i].z)
             }
+            nextStones[path[i].key] = stoneItem
+            nextStoneItems.push(stoneItem)
         }
 
         stones = nextStones
+        stoneItems = nextStoneItems
         stoneCount = path.length
         currentPlayer = stoneCount % 2 === 0 ? 1 : 2
         boardRevision += 1
@@ -676,6 +715,7 @@ ApplicationWindow {
 
     function resetGameTree() {
         stones = ({})
+        stoneItems = []
         gameNodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
                        "key": "", "player": 0, "moveNumber": 0 }]
         currentNodeId = 0
@@ -952,7 +992,7 @@ ApplicationWindow {
         else if (action === "lastMove")
             gotoLastMove()
 
-        inputLayer.forceActiveFocus()
+        focusBoardInput()
     }
 
     function moveNumberDisplayText() {
@@ -1078,9 +1118,9 @@ ApplicationWindow {
         cameraPitch
         cameraDistance
         cameraTarget
-        var dx = boardCamera.position.x - basePosition.x
-        var dy = boardCamera.position.y - basePosition.y
-        var dz = boardCamera.position.z - basePosition.z
+        var dx = boardScene.sceneCamera.position.x - basePosition.x
+        var dy = boardScene.sceneCamera.position.y - basePosition.y
+        var dz = boardScene.sceneCamera.position.z - basePosition.z
         var length = Math.sqrt(dx * dx + dy * dy + dz * dz)
         var direction = length < 0.001
                         ? cameraBackVector()
@@ -1096,9 +1136,9 @@ ApplicationWindow {
         cameraPitch
         cameraDistance
         cameraTarget
-        var normal = normalizedVector(Qt.vector3d(boardCamera.position.x - labelPosition.x,
-                                                  boardCamera.position.y - labelPosition.y,
-                                                  boardCamera.position.z - labelPosition.z),
+        var normal = normalizedVector(Qt.vector3d(boardScene.sceneCamera.position.x - labelPosition.x,
+                                                  boardScene.sceneCamera.position.y - labelPosition.y,
+                                                  boardScene.sceneCamera.position.z - labelPosition.z),
                                       cameraBackVector())
         var cameraUp = cameraUpVector()
         var cameraRight = cameraRightVector()
@@ -1226,7 +1266,7 @@ ApplicationWindow {
             statusMode = "message"
             statusMessage = trText("sgfSaveFailed") + ": " + fileIo.lastError
         }
-        inputLayer.forceActiveFocus()
+        focusBoardInput()
     }
 
     function mainAxisOrigin() {
@@ -1377,14 +1417,14 @@ ApplicationWindow {
     function axisGizmoLabelPoint(dx, dy, dz) {
         cameraYaw
         cameraPitch
-        axisView.width
-        axisView.height
+        axisGizmo.axisView.width
+        axisGizmo.axisView.height
 
-        var size = Math.min(axisView.width, axisView.height)
+        var size = Math.min(axisGizmo.axisView.width, axisGizmo.axisView.height)
         if (size <= 0)
             return Qt.point(-1000, -1000)
 
-        return projectedAxisPoint(dx, dy, dz, axisView.width / 2, Math.max(32, size * 0.36))
+        return projectedAxisPoint(dx, dy, dz, axisGizmo.axisView.width / 2, Math.max(32, size * 0.36))
     }
 
     function hoverLabelPoint() {
@@ -1393,41 +1433,41 @@ ApplicationWindow {
         cameraDistance
         cameraTarget
         hoverKey
-        if (hoverKey === "" || !boardView.camera)
+        if (hoverKey === "" || !boardScene.sceneCamera)
             return Qt.point(-1000, -1000)
 
         var hoverPoint = pointPosition(hoverX, hoverY, hoverZ)
-        var mapped = boardView.mapFrom3DScene(Qt.vector3d(hoverPoint.x,
+        var mapped = boardScene.mapFrom3DScene(Qt.vector3d(hoverPoint.x,
                                                          hoverPoint.y + spacing * 0.42,
                                                          hoverPoint.z))
-        return Qt.point(boardView.x + mapped.x, boardView.y + mapped.y)
+        return Qt.point(boardScene.x + mapped.x, boardScene.y + mapped.y)
     }
 
     function refreshCamera() {
         var yaw = cameraYaw * Math.PI / 180
         var pitch = cameraPitch * Math.PI / 180
         var cp = Math.cos(pitch)
-        boardCamera.position = Qt.vector3d(
+        boardScene.sceneCamera.position = Qt.vector3d(
             cameraTarget.x + cameraDistance * Math.sin(yaw) * cp,
             cameraTarget.y + cameraDistance * Math.sin(pitch),
             cameraTarget.z + cameraDistance * Math.cos(yaw) * cp)
-        boardCamera.lookAt(cameraTarget)
+        boardScene.sceneCamera.lookAt(cameraTarget)
         refreshAxisCamera()
     }
 
     function refreshAxisCamera() {
-        if (!axisCamera)
+        if (!axisGizmo.axisCamera)
             return
 
         var yaw = cameraYaw * Math.PI / 180
         var pitch = cameraPitch * Math.PI / 180
         var cp = Math.cos(pitch)
         var distance = 320
-        axisCamera.position = Qt.vector3d(
+        axisGizmo.axisCamera.position = Qt.vector3d(
             distance * Math.sin(yaw) * cp,
             distance * Math.sin(pitch),
             distance * Math.cos(yaw) * cp)
-        axisCamera.lookAt(Qt.vector3d(0, 0, 0))
+        axisGizmo.axisCamera.lookAt(Qt.vector3d(0, 0, 0))
     }
 
     function defaultCameraDistance() {
@@ -1501,17 +1541,50 @@ ApplicationWindow {
         refreshCamera()
     }
 
-    function modelIsGridPoint(model) {
-        return model && model.selectionPoint === true
-    }
-
     function pointFromMouse(x, y) {
-        var result = boardView.pick(x, y)
-        var hit = result.objectHit
-        if (!modelIsGridPoint(hit) || isClipped(hit.gx, hit.gy, hit.gz))
+        if (!boardScene || !boardScene.sceneCamera || boardScene.width <= 0 || boardScene.height <= 0)
             return null
 
-        return { "x": hit.gx, "y": hit.gy, "z": hit.gz }
+        var aspect = boardScene.width / boardScene.height
+        var fieldOfView = boardScene.sceneCamera.fieldOfView * Math.PI / 180
+        var halfHeight = Math.tan(fieldOfView * 0.5)
+        var nx = (x / boardScene.width) * 2 - 1
+        var ny = 1 - (y / boardScene.height) * 2
+        var back = cameraBackVector()
+        var forward = Qt.vector3d(-back.x, -back.y, -back.z)
+        var right = cameraRightVector()
+        var up = cameraUpVector()
+        var ray = normalizedVector(Qt.vector3d(forward.x + right.x * nx * aspect * halfHeight + up.x * ny * halfHeight,
+                                               forward.y + right.y * nx * aspect * halfHeight + up.y * ny * halfHeight,
+                                               forward.z + right.z * nx * aspect * halfHeight + up.z * ny * halfHeight),
+                                   forward)
+        var origin = boardScene.sceneCamera.position
+        var hitRadius = quick3DPrimitiveDiameter * gridPointSphereScale * 0.5
+        var hitRadiusSquared = hitRadius * hitRadius
+        var bestPoint = null
+        var bestDistance = Number.POSITIVE_INFINITY
+
+        for (var i = 0; i < points.length; ++i) {
+            var point = points[i]
+            if (isClipped(point.x, point.y, point.z))
+                continue
+
+            var p = point.position
+            var ox = p.x - origin.x
+            var oy = p.y - origin.y
+            var oz = p.z - origin.z
+            var alongRay = ox * ray.x + oy * ray.y + oz * ray.z
+            if (alongRay < 0)
+                continue
+
+            var distanceSquared = ox * ox + oy * oy + oz * oz - alongRay * alongRay
+            if (distanceSquared <= hitRadiusSquared && alongRay < bestDistance) {
+                bestDistance = alongRay
+                bestPoint = point
+            }
+        }
+
+        return bestPoint
     }
 
     function clearHover() {
@@ -1550,1546 +1623,52 @@ ApplicationWindow {
         resetCamera()
     }
 
-    Rectangle {
+    CommandToolbar {
         id: commandToolbar
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: root.commandToolbarHeight
-        z: 40
-        clip: true
-        color: "#edf2f5"
-        border.color: "#b8c5cc"
-
-        Flickable {
-            id: commandToolbarFlick
-            anchors.fill: parent
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            contentWidth: commandToolbarRow.implicitWidth
-            contentHeight: height
-            interactive: contentWidth > width
-            flickableDirection: Flickable.HorizontalFlick
-            boundsBehavior: Flickable.StopAtBounds
-
-            Row {
-                id: commandToolbarRow
-                height: commandToolbarFlick.height
-                spacing: root.compactLayout ? 3 : 4
-
-                Repeater {
-                    model: root.commandToolbarItems
-
-                    delegate: Item {
-                        width: Math.round((modelData.width || 52) * (root.compactLayout ? 0.94 : 1.0))
-                        height: commandToolbarRow.height
-
-                        Button {
-                            visible: modelData.type === "button"
-                            enabled: root.toolbarActionEnabled(modelData.action || "")
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: parent.height - (root.compactLayout ? 6 : 8)
-                            text: root.language === "zh" ? modelData.zh : modelData.en
-                            font.pixelSize: root.compactLayout ? 11 : 12
-                            leftPadding: 4
-                            rightPadding: 4
-                            topPadding: 2
-                            bottomPadding: 2
-                            onClicked: root.runToolbarAction(modelData.action || "")
-                        }
-
-                        TextField {
-                            id: moveNumberInput
-                            visible: modelData.type === "moveInput"
-                            property bool committingMoveNumber: false
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: parent.height - (root.compactLayout ? 6 : 8)
-                            selectByMouse: true
-                            horizontalAlignment: TextInput.AlignHCenter
-                            verticalAlignment: TextInput.AlignVCenter
-                            font.pixelSize: root.compactLayout ? 11 : 12
-                            validator: IntValidator {
-                                bottom: 0
-                                top: root.boardSize * root.boardSize * root.boardSize
-                            }
-                            function commitMoveNumber() {
-                                if (committingMoveNumber)
-                                    return
-
-                                committingMoveNumber = true
-                                root.gotoMoveNumber(parseInt(text, 10))
-                                text = root.currentMoveNumberText()
-                                committingMoveNumber = false
-                            }
-                            Component.onCompleted: text = root.currentMoveNumberText()
-                            onActiveFocusChanged: {
-                                if (activeFocus)
-                                    selectAll()
-                            }
-                            onAccepted: {
-                                commitMoveNumber()
-                                inputLayer.forceActiveFocus()
-                            }
-                            onEditingFinished: commitMoveNumber()
-
-                            Connections {
-                                target: root
-
-                                function onCurrentNodeIdChanged() {
-                                    if (!moveNumberInput.activeFocus)
-                                        moveNumberInput.text = root.currentMoveNumberText()
-                                }
-
-                                function onBoardRevisionChanged() {
-                                    if (!moveNumberInput.activeFocus)
-                                        moveNumberInput.text = root.currentMoveNumberText()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        app: root
     }
 
-    View3D {
-        id: boardView
-        x: root.boardViewOffsetX
-        y: 0
-        width: parent.width
-        height: parent.height - root.commandToolbarHeight - root.panelGap
-        camera: boardCamera
-
-        environment: SceneEnvironment {
-            backgroundMode: SceneEnvironment.Color
-            clearColor: "#bcc8cf"
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
-        }
-
-        PerspectiveCamera {
-            id: boardCamera
-            fieldOfView: 90
-            clipNear: 8
-            clipFar: 4000
-        }
-
-        DirectionalLight {
-            eulerRotation.x: root.sceneDirectionalLightPitch()
-            eulerRotation.y: root.sceneDirectionalLightYaw()
-            brightness: 0.85
-            castsShadow: false
-        }
-
-        PointLight {
-            position: root.scenePointLightPosition()
-            brightness: 80
-            color: "#ffffff"
-        }
-
-        Node {
-            id: boardRoot
-
-            Repeater3D {
-                model: root.rods
-                delegate: Model {
-                    readonly property int axis: modelData.axis
-                    readonly property real gx: modelData.x
-                    readonly property real gy: modelData.y
-                    readonly property real gz: modelData.z
-                    readonly property int x1: modelData.x1
-                    readonly property int y1: modelData.y1
-                    readonly property int z1: modelData.z1
-                    readonly property int x2: modelData.x2
-                    readonly property int y2: modelData.y2
-                    readonly property int z2: modelData.z2
-
-                    source: "#Cube"
-                    pickable: false
-                    opacity: root.gridRodOpacity(axis, x1, y1, z1, x2, y2, z2)
-                    position: root.pointPosition(gx, gy, gz)
-                    scale: axis === 0
-                           ? Qt.vector3d(root.spacing / 100, 0.012, 0.012)
-                           : axis === 1
-                             ? Qt.vector3d(0.012, root.spacing / 100, 0.012)
-                             : Qt.vector3d(0.012, 0.012, root.spacing / 100)
-                    materials: PrincipledMaterial {
-                        baseColor: root.gridRodColor(axis, x1, y1, z1)
-                        alphaMode: PrincipledMaterial.Blend
-                        roughness: 0.72
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: [
-                    { "axis": "X", "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "Y", "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "Z", "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" }
-                ]
-
-                delegate: Model {
-                    readonly property vector3d origin: root.mainAxisOrigin()
-                    readonly property real axisLength: root.mainAxisLength()
-                    readonly property int dx: modelData.dx
-                    readonly property int dy: modelData.dy
-                    readonly property int dz: modelData.dz
-
-                    source: "#Cube"
-                    pickable: false
-                    position: Qt.vector3d(origin.x + dx * axisLength * 0.5,
-                                          origin.y + dy * axisLength * 0.5,
-                                          origin.z + dz * axisLength * 0.5)
-                    scale: dx !== 0
-                           ? Qt.vector3d(axisLength / 100, 0.02, 0.02)
-                           : dy !== 0
-                             ? Qt.vector3d(0.02, axisLength / 100, 0.02)
-                             : Qt.vector3d(0.02, 0.02, axisLength / 100)
-                    materials: PrincipledMaterial {
-                        baseColor: modelData.color
-                        roughness: 0.36
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: [
-                    { "axis": "X", "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "Y", "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "Z", "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" }
-                ]
-
-                delegate: Model {
-                    readonly property vector3d origin: root.mainAxisOrigin()
-                    readonly property real axisLength: root.mainAxisLength()
-
-                    source: "#Sphere"
-                    pickable: false
-                    position: Qt.vector3d(origin.x + modelData.dx * axisLength,
-                                          origin.y + modelData.dy * axisLength,
-                                          origin.z + modelData.dz * axisLength)
-                    scale: Qt.vector3d(0.075, 0.075, 0.075)
-                    materials: PrincipledMaterial {
-                        baseColor: modelData.color
-                        roughness: 0.26
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: root.mainAxisLabels
-
-                delegate: Model {
-                    readonly property vector3d labelPosition: root.pointPosition(modelData.x, modelData.y, modelData.z)
-
-                    source: "#Rectangle"
-                    pickable: false
-                    position: labelPosition
-                    rotation: root.stoneBillboardRotation(labelPosition)
-                    scale: Qt.vector3d(modelData.size, modelData.size, modelData.size)
-                    materials: PrincipledMaterial {
-                        lighting: PrincipledMaterial.NoLighting
-                        baseColor: "#ffffff"
-                        baseColorMap: Texture {
-                            sourceItem: Item {
-                                width: 256
-                                height: 256
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.label
-                                    color: modelData.color
-                                    font.pixelSize: modelData.fontSize
-                                    font.bold: true
-                                }
-                            }
-                        }
-                        alphaMode: PrincipledMaterial.Mask
-                        alphaCutoff: 0.04
-                        cullMode: Material.NoCulling
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: root.points
-                delegate: Model {
-                    readonly property int gx: modelData.x
-                    readonly property int gy: modelData.y
-                    readonly property int gz: modelData.z
-                    readonly property bool selectionPoint: true
-                    property bool clipped: root.isClipped(gx, gy, gz)
-
-                    source: "#Sphere"
-                    pickable: !clipped
-                    visible: !clipped
-                    position: modelData.position
-                    scale: Qt.vector3d(root.selectionSphereScale,
-                                       root.selectionSphereScale,
-                                       root.selectionSphereScale)
-                    opacity: 0.001
-                    materials: PrincipledMaterial {
-                        lighting: PrincipledMaterial.NoLighting
-                        baseColor: "#ffffff"
-                        alphaMode: PrincipledMaterial.Blend
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: root.points
-                delegate: Model {
-                    readonly property int gx: modelData.x
-                    readonly property int gy: modelData.y
-                    readonly property int gz: modelData.z
-                    readonly property bool gridPoint: true
-                    property int occupant: root.stoneAt(gx, gy, gz)
-                    property bool clipped: root.isClipped(gx, gy, gz)
-                    property bool hovered: root.hoverKey === modelData.key
-                    readonly property real pointScale: hovered ? root.stoneModelScale() : root.gridPointSphereScale
-
-                    source: "#Sphere"
-                    pickable: false
-                    visible: occupant === 0
-                    position: modelData.position
-                    scale: Qt.vector3d(pointScale, pointScale, pointScale)
-                    opacity: root.emptyPointOpacity(clipped, hovered)
-                    materials: PrincipledMaterial {
-                        baseColor: hovered ? "#2fb97f" : "#6e8794"
-                        alphaMode: PrincipledMaterial.Blend
-                        roughness: 0.54
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: root.points
-                delegate: Model {
-                    readonly property int gx: modelData.x
-                    readonly property int gy: modelData.y
-                    readonly property int gz: modelData.z
-                    readonly property bool gridPoint: true
-                    property int occupant: root.stoneAt(gx, gy, gz)
-                    property bool clipped: root.isClipped(gx, gy, gz)
-
-                    source: "#Sphere"
-                    pickable: false
-                    visible: occupant !== 0
-                    position: modelData.position
-                    scale: Qt.vector3d(root.stoneModelScale(),
-                                       root.stoneModelScale(),
-                                       root.stoneModelScale())
-                    opacity: clipped ? root.hiddenLayerOpacity() : 1
-                    materials: PrincipledMaterial {
-                        lighting: root.stoneLightingEnabled
-                                  ? PrincipledMaterial.FragmentLighting
-                                  : PrincipledMaterial.NoLighting
-                        baseColor: occupant === 1 ? "#06080b" : "#fff8e8"
-                        alphaMode: PrincipledMaterial.Blend
-                        metalness: 0
-                        roughness: occupant === 1 ? 0.46 : 0.62
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: root.points
-                delegate: Model {
-                    readonly property int gx: modelData.x
-                    readonly property int gy: modelData.y
-                    readonly property int gz: modelData.z
-                    property int occupant: root.stoneAt(gx, gy, gz)
-                    property int moveNumber: root.stoneMoveNumberAt(gx, gy, gz)
-                    property bool lastMove: root.isLastMoveAt(gx, gy, gz)
-                    property bool clipped: root.isClipped(gx, gy, gz)
-                    readonly property vector3d labelPosition: root.stoneBillboardPosition(modelData.position)
-                    readonly property real labelScale: root.stoneBillboardScale()
-
-                    source: "#Rectangle"
-                    pickable: false
-                    visible: occupant !== 0 && root.stoneOverlayVisible(moveNumber, lastMove)
-                    position: labelPosition
-                    rotation: root.stoneBillboardRotation(labelPosition)
-                    scale: Qt.vector3d(labelScale, labelScale, labelScale)
-                    opacity: clipped ? root.hiddenLayerOpacity() : 1
-                    materials: PrincipledMaterial {
-                        lighting: PrincipledMaterial.NoLighting
-                        baseColor: "#ffffff"
-                        baseColorMap: Texture {
-                            sourceItem: Item {
-                                width: 128
-                                height: 128
-
-                                Canvas {
-                                    id: lastMoveMarker3d
-                                    visible: lastMove
-                                    anchors.fill: parent
-                                    onVisibleChanged: requestPaint()
-                                    onPaint: {
-                                        var ctx = getContext("2d")
-                                        ctx.clearRect(0, 0, width, height)
-                                        if (!lastMove)
-                                            return
-
-                                        ctx.fillStyle = "#e3342f"
-                                        ctx.beginPath()
-                                        ctx.moveTo(10, 10)
-                                        ctx.lineTo(56, 10)
-                                        ctx.lineTo(10, 56)
-                                        ctx.closePath()
-                                        ctx.fill()
-                                    }
-                                    Component.onCompleted: requestPaint()
-                                }
-
-                                Text {
-                                    visible: root.stoneNumberVisible(moveNumber, lastMove)
-                                    anchors.centerIn: parent
-                                    width: 108
-                                    height: 108
-                                    text: moveNumber
-                                    color: root.stoneNumberColor(occupant, lastMove)
-                                    font.bold: true
-                                    font.pixelSize: 72
-                                    fontSizeMode: Text.Fit
-                                    minimumPixelSize: 18
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                            }
-                        }
-                        alphaMode: PrincipledMaterial.Mask
-                        alphaCutoff: 0.04
-                        cullMode: Material.NoCulling
-                    }
-                }
-            }
-
-        }
+    BoardScene {
+        id: boardScene
+        app: root
     }
 
-    Rectangle {
+    HoverCoordinateBadge {
         id: hoverCoordinateBadge
-        property var screenPoint: root.hoverLabelPoint()
-
-        visible: root.hoverKey !== ""
-        x: screenPoint.x - width / 2
-        y: screenPoint.y - height - 6
-        z: 5
-        width: hoverCoordinateText.implicitWidth + 28
-        height: 34
-        radius: 8
-        color: "#eaf8ef"
-        border.color: "#2fb97f"
-        border.width: 2
-
-        Text {
-            id: hoverCoordinateText
-            anchors.centerIn: parent
-            text: root.hoverKey === "" ? "" : root.coordinateText(root.hoverX, root.hoverY, root.hoverZ)
-            color: "#12633e"
-            font.pixelSize: 18
-            font.bold: true
-        }
+        app: root
     }
 
-    Item {
+    BoardInputLayer {
         id: inputLayer
-        anchors.fill: boardView
-        focus: true
-
-        property real lastX: 0
-        property real lastY: 0
-        property bool moved: false
-        property int pressedButton: 0
-        property bool forwardHeld: false
-        property bool backHeld: false
-        property bool leftHeld: false
-        property bool rightHeld: false
-        property bool upHeld: false
-        property bool downHeld: false
-        property bool turnLeftHeld: false
-        property bool turnRightHeld: false
-
-        function hasHeldNavigationKey() {
-            return forwardHeld || backHeld || leftHeld || rightHeld
-                   || upHeld || downHeld || turnLeftHeld || turnRightHeld
-        }
-
-        function clearHeldNavigationKeys() {
-            forwardHeld = false
-            backHeld = false
-            leftHeld = false
-            rightHeld = false
-            upHeld = false
-            downHeld = false
-            turnLeftHeld = false
-            turnRightHeld = false
-        }
-
-        onActiveFocusChanged: {
-            if (!activeFocus)
-                clearHeldNavigationKeys()
-        }
-
-        Timer {
-            interval: 16
-            repeat: true
-            running: inputLayer.hasHeldNavigationKey()
-
-            onTriggered: {
-                var depthForward = (inputLayer.forwardHeld ? 1 : 0) - (inputLayer.backHeld ? 1 : 0)
-                var screenRight = (inputLayer.rightHeld ? 1 : 0) - (inputLayer.leftHeld ? 1 : 0)
-                var screenUp = (inputLayer.upHeld ? 1 : 0) - (inputLayer.downHeld ? 1 : 0)
-                var length = Math.sqrt(depthForward * depthForward + screenRight * screenRight + screenUp * screenUp)
-
-                if (length > 0) {
-                    var step = Math.max(3.6, root.cameraDistance * 0.006)
-                    root.moveTarget(depthForward / length, screenRight / length, screenUp / length, step)
-                }
-
-                var turn = (inputLayer.turnRightHeld ? 1 : 0) - (inputLayer.turnLeftHeld ? 1 : 0)
-                if (turn !== 0) {
-                    root.cameraYaw += turn * 1.15
-                    root.refreshCamera()
-                }
-            }
-        }
-
-        Keys.onPressed: function(event) {
-            if (event.key === Qt.Key_W) {
-                inputLayer.upHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_S) {
-                inputLayer.downHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_A) {
-                inputLayer.leftHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_D) {
-                inputLayer.rightHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_Q) {
-                inputLayer.forwardHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_E) {
-                inputLayer.backHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_X) {
-                root.adjustClip(root.frontFacingClipAxis(), -1)
-                event.accepted = true
-            } else if (event.key === Qt.Key_Z) {
-                root.adjustClip(root.frontFacingClipAxis(), 1)
-                event.accepted = true
-            } else if (event.key === Qt.Key_Left) {
-                inputLayer.turnLeftHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_Right) {
-                inputLayer.turnRightHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_R) {
-                inputLayer.upHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_F) {
-                inputLayer.downHeld = true
-                event.accepted = true
-            } else if (event.key === Qt.Key_Space) {
-                if (!event.isAutoRepeat)
-                    root.resetCamera()
-                event.accepted = true
-            } else if (event.key === Qt.Key_Backspace) {
-                if (!event.isAutoRepeat)
-                    root.requestDeleteCurrentNode()
-                event.accepted = true
-            } else if (event.key === Qt.Key_M) {
-                if (!event.isAutoRepeat)
-                    root.cycleMoveNumberDisplayMode()
-                event.accepted = true
-            }
-        }
-
-        Keys.onReleased: function(event) {
-            if (event.key === Qt.Key_W) {
-                inputLayer.upHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_S) {
-                inputLayer.downHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_A) {
-                inputLayer.leftHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_D) {
-                inputLayer.rightHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_Q) {
-                inputLayer.forwardHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_E) {
-                inputLayer.backHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_Left) {
-                inputLayer.turnLeftHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_Right) {
-                inputLayer.turnRightHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_R) {
-                inputLayer.upHeld = false
-                event.accepted = true
-            } else if (event.key === Qt.Key_F) {
-                inputLayer.downHeld = false
-                event.accepted = true
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-
-            onPressed: function(mouse) {
-                inputLayer.forceActiveFocus()
-                inputLayer.lastX = mouse.x
-                inputLayer.lastY = mouse.y
-                inputLayer.moved = false
-                inputLayer.pressedButton = mouse.button
-                mouse.accepted = true
-            }
-
-            onPositionChanged: function(mouse) {
-                var dx = mouse.x - inputLayer.lastX
-                var dy = mouse.y - inputLayer.lastY
-
-                if (mouse.buttons & Qt.LeftButton) {
-                    if (Math.abs(dx) + Math.abs(dy) > 2)
-                        inputLayer.moved = true
-                    root.cameraYaw -= dx * 0.32
-                    root.cameraPitch = root.clamp(root.cameraPitch + dy * 0.22, -62, 78)
-                    root.refreshCamera()
-                } else if ((mouse.buttons & Qt.RightButton) || (mouse.buttons & Qt.MiddleButton)) {
-                    if (Math.abs(dx) + Math.abs(dy) > 2)
-                        inputLayer.moved = true
-                    root.panCamera(dx, dy)
-                } else {
-                    root.updateHover(mouse.x, mouse.y)
-                }
-
-                inputLayer.lastX = mouse.x
-                inputLayer.lastY = mouse.y
-            }
-
-            onReleased: function(mouse) {
-                if (inputLayer.pressedButton === Qt.LeftButton && !inputLayer.moved)
-                    root.placeFromMouse(mouse.x, mouse.y)
-                inputLayer.pressedButton = 0
-                root.updateHover(mouse.x, mouse.y)
-                mouse.accepted = true
-            }
-
-            onExited: root.clearHover()
-
-            onWheel: function(wheel) {
-                var factor = wheel.angleDelta.y > 0 ? 0.9 : 1.12
-                root.cameraDistance = root.clamp(root.cameraDistance * factor, 220, Math.max(1900, root.defaultCameraDistance() * 2.2))
-                root.refreshCamera()
-                wheel.accepted = true
-            }
-        }
+        app: root
+        anchors.fill: boardScene
     }
 
-    Rectangle {
-        id: axisGizmoPanel
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: root.panelMargin + root.infoPanelWidth + root.panelGap
-        anchors.topMargin: root.topContentMargin
-        width: root.axisGizmoPanelSize
-        height: root.axisGizmoPanelSize
-        radius: 8
-        color: "#eef4f7"
-        opacity: 0.92
-        border.color: "#b8c7cf"
-
-        View3D {
-            id: axisView
-            anchors.fill: parent
-            anchors.margins: 6
-            camera: axisCamera
-
-            environment: SceneEnvironment {
-                backgroundMode: SceneEnvironment.Transparent
-                antialiasingMode: SceneEnvironment.MSAA
-                antialiasingQuality: SceneEnvironment.High
-            }
-
-            PerspectiveCamera {
-                id: axisCamera
-                clipNear: 4
-                clipFar: 1000
-            }
-
-            DirectionalLight {
-                eulerRotation.x: -35
-                eulerRotation.y: 30
-                brightness: 1.6
-            }
-
-            Repeater3D {
-                model: [
-                    { "axis": "+X", "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "-X", "dx": -1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "+Y", "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "-Y", "dx": 0, "dy": -1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "+Z", "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" },
-                    { "axis": "-Z", "dx": 0, "dy": 0, "dz": -1, "color": "#3d73d8" }
-                ]
-
-                delegate: Model {
-                    readonly property real axisLength: 72
-                    readonly property int dx: modelData.dx
-                    readonly property int dy: modelData.dy
-                    readonly property int dz: modelData.dz
-
-                    source: "#Cube"
-                    pickable: false
-                    position: Qt.vector3d(dx * axisLength * 0.5,
-                                          dy * axisLength * 0.5,
-                                          dz * axisLength * 0.5)
-                    scale: dx !== 0
-                           ? Qt.vector3d(axisLength / 100, 0.026, 0.026)
-                           : dy !== 0
-                             ? Qt.vector3d(0.026, axisLength / 100, 0.026)
-                             : Qt.vector3d(0.026, 0.026, axisLength / 100)
-                    materials: PrincipledMaterial {
-                        baseColor: modelData.color
-                        roughness: 0.45
-                    }
-                }
-            }
-
-            Repeater3D {
-                model: [
-                    { "axis": "+X", "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "-X", "dx": -1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                    { "axis": "+Y", "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "-Y", "dx": 0, "dy": -1, "dz": 0, "color": "#39a66a" },
-                    { "axis": "+Z", "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" },
-                    { "axis": "-Z", "dx": 0, "dy": 0, "dz": -1, "color": "#3d73d8" }
-                ]
-
-                delegate: Model {
-                    readonly property bool axisHandle: true
-                    readonly property string axisName: modelData.axis
-                    readonly property real axisLength: 72
-
-                    source: "#Sphere"
-                    pickable: true
-                    position: Qt.vector3d(modelData.dx * axisLength,
-                                          modelData.dy * axisLength,
-                                          modelData.dz * axisLength)
-                    scale: Qt.vector3d(0.18, 0.18, 0.18)
-                    materials: PrincipledMaterial {
-                        baseColor: modelData.color
-                        roughness: 0.22
-                    }
-                }
-            }
-        }
-
-        Repeater {
-            model: root.clipAxes
-
-            delegate: Text {
-                property var screenPoint: root.axisGizmoLabelPoint(modelData.dx, modelData.dy, modelData.dz)
-
-                x: root.clamp(axisView.x + screenPoint.x - width / 2,
-                              4,
-                              axisGizmoPanel.width - width - 4)
-                y: root.clamp(axisView.y + screenPoint.y - height / 2,
-                              4,
-                              axisGizmoPanel.height - height - (root.compactLayout ? 18 : 22))
-                z: 2
-                visible: screenPoint.x > -900 && screenPoint.y > -900
-                text: modelData.label
-                color: modelData.color
-                font.pixelSize: 12
-                font.bold: true
-                style: Text.Outline
-                styleColor: "#eef4f7"
-            }
-        }
-
-        Text {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 6
-            horizontalAlignment: Text.AlignHCenter
-            text: root.trText("axisHint")
-            color: "#41515a"
-            font.pixelSize: 12
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton
-
-            onClicked: function(mouse) {
-                inputLayer.forceActiveFocus()
-                var result = axisView.pick(mouse.x - axisView.x, mouse.y - axisView.y)
-                var hit = result.objectHit
-                if (hit && hit.axisHandle)
-                    root.alignCameraToAxis(hit.axisName)
-                mouse.accepted = true
-            }
-        }
+    AxisGizmoPanel {
+        id: axisGizmo
+        app: root
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.leftMargin: root.panelMargin
-        anchors.topMargin: root.topContentMargin
-        width: root.infoPanelWidth
-        height: 166
-        radius: 8
-        color: "#e7eef2"
-        border.color: "#bcc9d0"
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: root.panelInnerMargin
-            spacing: root.compactLayout ? 5 : 8
-
-            Label {
-                text: root.windowTitleText()
-                color: "#17212a"
-                font.pixelSize: 20
-                font.bold: true
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: root.statusLabelText()
-                color: root.currentPlayer === 1 ? "#111318" : "#697178"
-                font.pixelSize: 15
-                font.bold: true
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: root.trText("stones") + ": " + root.stoneCount + " / " + (root.boardSize * root.boardSize * root.boardSize)
-                color: "#33424d"
-                font.pixelSize: 14
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: root.hoverKey === ""
-                      ? root.trText("hoverNone")
-                      : root.trText("hover") + ": " + root.coordinateText(root.hoverX, root.hoverY, root.hoverZ)
-                color: "#33424d"
-                font.pixelSize: 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                spacing: 8
-
-                Button {
-                    text: root.trText("undo")
-                    enabled: root.currentNodeId !== 0
-                    onClicked: root.undoMove()
-                }
-
-                Button {
-                    text: root.trText("clear")
-                    enabled: root.treeNodes.length > 1
-                    onClicked: root.clearBoard()
-                }
-            }
-        }
+    InfoPanel {
+        id: infoPanel
+        app: root
     }
 
-    Rectangle {
+    BranchPanel {
         id: branchPanel
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: root.panelMargin
-        anchors.topMargin: root.topContentMargin
-        anchors.bottomMargin: root.bottomContentMargin
-        width: root.branchPanelWidth
-        radius: 8
-        color: "#f3f7f9"
-        border.color: "#b9c8d0"
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: root.panelInnerMargin
-            spacing: root.compactLayout ? 6 : 8
-
-            Label {
-                text: root.trText("gameTree")
-                color: "#17212a"
-                font.pixelSize: root.compactLayout ? 16 : 18
-                font.bold: true
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: root.trText("currentMove") + ": " + root.currentNodeText()
-                color: "#52636d"
-                font.pixelSize: 12
-                elide: Text.ElideRight
-                Layout.fillWidth: true
-            }
-
-            Rectangle {
-                id: treeViewport
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                radius: 6
-                color: "#e9f0f4"
-                border.color: "#c5d1d8"
-                clip: true
-
-                Flickable {
-                    id: treeFlick
-                    anchors.fill: parent
-                    anchors.margins: root.compactLayout ? 6 : 8
-                    clip: true
-                    contentWidth: Math.max(width, root.treeCanvasWidth)
-                    contentHeight: Math.max(height, root.treeCanvasHeight)
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    Canvas {
-                        id: branchCanvas
-                        width: treeFlick.contentWidth
-                        height: treeFlick.contentHeight
-
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.clearRect(0, 0, width, height)
-
-                            var leftNodeByMove = ({})
-                            for (var r = 0; r < root.treeNodes.length; ++r) {
-                                var rowNode = root.treeNodes[r]
-                                var currentLeft = leftNodeByMove[rowNode.moveNumber]
-                                if (!currentLeft || rowNode.x < currentLeft.x)
-                                    leftNodeByMove[rowNode.moveNumber] = rowNode
-                            }
-
-                            ctx.font = "9px sans-serif"
-                            ctx.textAlign = "right"
-                            ctx.textBaseline = "middle"
-                            ctx.fillStyle = "#6f7f88"
-                            for (var moveNumber in leftNodeByMove) {
-                                var leftNode = leftNodeByMove[moveNumber]
-                                ctx.fillText(String(leftNode.moveNumber),
-                                             Math.max(10, leftNode.x - leftNode.radius - 7),
-                                             leftNode.y)
-                            }
-
-                            ctx.lineCap = "round"
-                            ctx.lineJoin = "round"
-                            for (var e = 0; e < root.treeEdges.length; ++e) {
-                                var edge = root.treeEdges[e]
-                                ctx.beginPath()
-                                ctx.moveTo(edge.x1, edge.y1)
-                                ctx.lineTo(edge.x2, edge.y2)
-                                ctx.lineWidth = edge.current ? 3 : 2
-                                ctx.strokeStyle = edge.current ? "#2b83c6" : "#afbdc5"
-                                ctx.stroke()
-                            }
-
-                            for (var i = 0; i < root.treeNodes.length; ++i) {
-                                var node = root.treeNodes[i]
-                                ctx.beginPath()
-                                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2)
-                                if (node.player === 1) {
-                                    ctx.fillStyle = "#101418"
-                                } else if (node.player === 2) {
-                                    ctx.fillStyle = "#fff8e8"
-                                } else {
-                                    ctx.fillStyle = "#d9e3e9"
-                                }
-                                ctx.fill()
-                                ctx.lineWidth = node.current ? 3 : 1.5
-                                ctx.strokeStyle = node.current ? "#2b83c6" : (node.player === 2 ? "#65747d" : "#41515a")
-                                ctx.stroke()
-
-                                ctx.fillStyle = node.player === 1 ? "#f7fbfd" : "#1a252d"
-                                ctx.font = node.current ? "bold 10px sans-serif" : "10px sans-serif"
-                                ctx.textAlign = "center"
-                                ctx.textBaseline = "middle"
-                                ctx.fillText(node.label, node.x, node.y)
-                            }
-                        }
-
-                        onWidthChanged: requestPaint()
-                        onHeightChanged: requestPaint()
-
-                        Connections {
-                            target: root
-                            function onTreeRevisionChanged() {
-                                branchCanvas.requestPaint()
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: branchCanvas
-                        acceptedButtons: Qt.LeftButton
-                        hoverEnabled: true
-
-                        onClicked: function(mouse) {
-                            var nodeId = root.treeNodeAt(mouse.x, mouse.y)
-                            if (nodeId >= 0) {
-                                inputLayer.forceActiveFocus()
-                                root.gotoNode(nodeId)
-                            }
-                            mouse.accepted = true
-                        }
-                    }
-                }
-            }
-        }
+        app: root
     }
 
-    Rectangle {
+    VisualSettingsPanel {
         id: visualPanel
-        anchors.right: branchPanel.left
-        anchors.rightMargin: root.panelGap
-        anchors.top: parent.top
-        anchors.topMargin: root.topContentMargin
-        width: root.controlPanelWidth
-        height: root.visualPanelHeight
-        radius: 8
-        color: "#f3f7f9"
-        border.color: "#b9c8d0"
-        clip: true
-
-        Flickable {
-            id: visualPanelFlick
-            anchors.fill: parent
-            anchors.margins: root.panelInnerMargin
-            clip: true
-            interactive: contentHeight > height
-            contentWidth: width
-            contentHeight: visualPanelContent.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
-
-            ScrollBar.vertical: ScrollBar {
-                policy: visualPanelFlick.contentHeight > visualPanelFlick.height
-                        ? ScrollBar.AsNeeded
-                        : ScrollBar.AlwaysOff
-            }
-
-            ColumnLayout {
-            id: visualPanelContent
-            width: visualPanelFlick.width
-            spacing: root.compactLayout ? 5 : 8
-
-            Label {
-                text: root.trText("boardSize") + " / " + root.trText("visualSettings")
-                color: "#17212a"
-                font.pixelSize: root.compactLayout ? 16 : 18
-                font.bold: true
-                Layout.fillWidth: true
-            }
-
-            Label {
-                text: root.trText("boardSize") + "  " + root.boardSize + "x" + root.boardSize + "x" + root.boardSize
-                color: "#2f414c"
-                font.pixelSize: root.compactLayout ? 12 : 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                SpinBox {
-                    from: root.minBoardSize
-                    to: root.maxBoardSize
-                    value: root.boardSize
-                    editable: true
-                    Layout.fillWidth: true
-                    onValueModified: {
-                        inputLayer.forceActiveFocus()
-                        root.setBoardSize(value)
-                    }
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.setBoardSize(root.defaultBoardSize)
-                    }
-                }
-            }
-
-            Label {
-                text: root.trText("stoneSize") + "  " + Math.round(root.stoneScale * 100) + "%"
-                color: "#2f414c"
-                font.pixelSize: root.compactLayout ? 12 : 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Slider {
-                    from: root.minStoneScale
-                    to: 1.00
-                    value: root.stoneScale
-                    stepSize: 0.01
-                    Layout.fillWidth: true
-                    onMoved: root.stoneScale = value
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.stoneScale = root.defaultStoneScale
-                    }
-                }
-            }
-
-            Label {
-                text: root.trText("moveNumberDisplay") + "  " + root.moveNumberDisplayText()
-                color: "#2f414c"
-                font.pixelSize: root.compactLayout ? 12 : 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                ComboBox {
-                    model: [
-                        root.trText("moveNumberAll"),
-                        root.trText("moveNumberLastOnly"),
-                        root.trText("moveNumberHidden")
-                    ]
-                    currentIndex: root.moveNumberDisplayMode
-                    Layout.fillWidth: true
-                    onActivated: function(index) {
-                        inputLayer.forceActiveFocus()
-                        root.moveNumberDisplayMode = index
-                    }
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.moveNumberDisplayMode = root.defaultMoveNumberDisplayMode
-                    }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: root.compactLayout ? 4 : 8
-
-                CheckBox {
-                    text: root.trText("stoneLighting")
-                    checked: root.stoneLightingEnabled
-                    font.pixelSize: root.compactLayout ? 11 : 13
-                    Layout.fillWidth: true
-                    onToggled: {
-                        inputLayer.forceActiveFocus()
-                        root.stoneLightingEnabled = checked
-                    }
-                }
-
-                CheckBox {
-                    text: root.trText("lightFollowsCamera")
-                    checked: root.lightFollowsCamera
-                    font.pixelSize: root.compactLayout ? 11 : 13
-                    Layout.fillWidth: true
-                    onToggled: {
-                        inputLayer.forceActiveFocus()
-                        root.lightFollowsCamera = checked
-                    }
-                }
-            }
-
-            Label {
-                text: root.trText("gridPointOpacity") + "  " + Math.round(root.gridOpacity * 100) + "%"
-                color: "#2f414c"
-                font.pixelSize: root.compactLayout ? 12 : 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Slider {
-                    from: 0.12
-                    to: 0.9
-                    value: root.gridOpacity
-                    stepSize: 0.01
-                    Layout.fillWidth: true
-                    onMoved: root.gridOpacity = value
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.gridOpacity = root.defaultGridOpacity
-                    }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: root.compactLayout ? 4 : 8
-
-                CheckBox {
-                    text: root.trText("hideLines")
-                    checked: root.hideGridLines
-                    font.pixelSize: root.compactLayout ? 11 : 13
-                    Layout.fillWidth: true
-                    onToggled: {
-                        inputLayer.forceActiveFocus()
-                        root.hideGridLines = checked
-                    }
-                }
-
-                CheckBox {
-                    text: root.trText("hidePoints")
-                    checked: root.hideGridPoints
-                    font.pixelSize: root.compactLayout ? 11 : 13
-                    Layout.fillWidth: true
-                    onToggled: {
-                        inputLayer.forceActiveFocus()
-                        root.hideGridPoints = checked
-                    }
-                }
-            }
-
-            Label {
-                text: root.trText("hiddenTransparency") + "  " + Math.round(root.hiddenLayerTransparency * 100) + "%"
-                color: "#2f414c"
-                font.pixelSize: root.compactLayout ? 12 : 14
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Slider {
-                    from: 0.2
-                    to: 1.0
-                    value: root.hiddenLayerTransparency
-                    stepSize: 0.01
-                    Layout.fillWidth: true
-                    onMoved: root.hiddenLayerTransparency = value
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.hiddenLayerTransparency = root.defaultHiddenLayerTransparency
-                    }
-                }
-            }
-            }
-        }
+        app: root
+        branchPanelItem: branchPanel
     }
 
-    Rectangle {
+    ClipPanel {
         id: clipPanel
-        anchors.right: branchPanel.left
-        anchors.rightMargin: root.panelGap
-        anchors.top: visualPanel.bottom
-        anchors.topMargin: root.panelGap
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: root.bottomContentMargin
-        width: root.controlPanelWidth
-        radius: 8
-        color: "#f3f7f9"
-        border.color: "#b9c8d0"
-        clip: true
-
-        Flickable {
-            id: clipPanelFlick
-            anchors.fill: parent
-            anchors.margins: root.panelInnerMargin
-            clip: true
-            interactive: contentHeight > height
-            contentWidth: width
-            contentHeight: clipPanelContent.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
-
-            ScrollBar.vertical: ScrollBar {
-                policy: clipPanelFlick.contentHeight > clipPanelFlick.height
-                        ? ScrollBar.AsNeeded
-                        : ScrollBar.AlwaysOff
-            }
-
-            ColumnLayout {
-            id: clipPanelContent
-            width: clipPanelFlick.width
-            spacing: root.compactLayout ? 5 : 8
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                Label {
-                    text: root.trText("clipLayers")
-                    color: "#17212a"
-                    font.pixelSize: root.compactLayout ? 16 : 18
-                    font.bold: true
-                    Layout.fillWidth: true
-                }
-
-                Button {
-                    text: root.trText("reset")
-                    Layout.preferredWidth: root.compactLayout ? 56 : 62
-                    onClicked: {
-                        inputLayer.forceActiveFocus()
-                        root.resetClipCounts()
-                    }
-                }
-            }
-
-            Label {
-                text: root.trText("activeAxis") + ": " + root.frontFacingClipAxis()
-                color: "#52636d"
-                font.pixelSize: 12
-                Layout.fillWidth: true
-            }
-
-            Item {
-                id: clipCross
-                property real center: width / 2
-                property real crossSize: Math.max(root.compactLayout ? 138 : 170,
-                                                  Math.min(root.compactLayout ? 176 : 204,
-                                                           clipPanel.height * (root.compactLayout ? 0.34 : 0.42)))
-                property real axisRadius: crossSize * 0.34
-
-                width: crossSize
-                height: crossSize
-                Layout.alignment: Qt.AlignHCenter
-
-                Repeater {
-                    model: [
-                        { "dx": 1, "dy": 0, "dz": 0, "color": "#d84a43" },
-                        { "dx": 0, "dy": 1, "dz": 0, "color": "#39a66a" },
-                        { "dx": 0, "dy": 0, "dz": 1, "color": "#3d73d8" }
-                    ]
-
-                    delegate: Rectangle {
-                        x: clipCross.center - width / 2
-                        y: clipCross.center - height / 2
-                        width: clipCross.axisRadius * 2
-                        height: 3
-                        radius: 2
-                        rotation: root.projectedAxisAngle(modelData.dx, modelData.dy, modelData.dz)
-                        transformOrigin: Item.Center
-                        color: modelData.color
-                        opacity: 0.56
-                    }
-                }
-
-                Rectangle {
-                    x: clipCross.center - width / 2
-                    y: clipCross.center - height / 2
-                    width: 10
-                    height: 10
-                    radius: 5
-                    color: "#52636d"
-                    opacity: 0.7
-                }
-
-                Repeater {
-                    model: root.clipAxes
-
-                    delegate: Rectangle {
-                        id: clipBubble
-                        property var bubbleCenter: root.projectedAxisPoint(modelData.dx,
-                                                                           modelData.dy,
-                                                                           modelData.dz,
-                                                                           clipCross.center,
-                                                                           clipCross.axisRadius)
-
-                        x: bubbleCenter.x - width / 2
-                        y: bubbleCenter.y - height / 2
-                        width: 44
-                        height: 44
-                        radius: 22
-                        color: clipMouse.containsMouse
-                               ? "#d5edf7"
-                               : root.clipCount(modelData.axis) > 0
-                                 ? "#eef8fb"
-                                 : "#ffffff"
-                        border.width: 2
-                        border.color: clipMouse.containsMouse ? "#3489a6" : modelData.color
-
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: -2
-
-                            Text {
-                                text: modelData.axis
-                                color: "#41515a"
-                                font.pixelSize: 10
-                                horizontalAlignment: Text.AlignHCenter
-                                width: clipBubble.width
-                            }
-
-                            Text {
-                                text: root.clipCount(modelData.axis)
-                                color: "#16212a"
-                                font.pixelSize: 17
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                width: clipBubble.width
-                            }
-                        }
-
-                        MouseArea {
-                            id: clipMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton
-
-                            onClicked: {
-                                inputLayer.forceActiveFocus()
-                            }
-
-                            onWheel: function(wheel) {
-                                inputLayer.forceActiveFocus()
-                                root.adjustClip(modelData.axis, wheel.angleDelta.y > 0 ? 1 : -1)
-                                wheel.accepted = true
-                            }
-                        }
-                    }
-                }
-            }
-
-            Flickable {
-                id: clipRowsFlick
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(clipRowsContent.implicitHeight,
-                                                 root.compactLayout ? 176 : 214)
-                Layout.minimumHeight: root.compactLayout ? 88 : 150
-                clip: true
-                contentWidth: width
-                contentHeight: clipRowsContent.implicitHeight
-                boundsBehavior: Flickable.StopAtBounds
-
-                ScrollBar.vertical: ScrollBar {
-                    policy: clipRowsFlick.contentHeight > clipRowsFlick.height
-                            ? ScrollBar.AsNeeded
-                            : ScrollBar.AlwaysOff
-                }
-
-                ColumnLayout {
-                    id: clipRowsContent
-                    width: clipRowsFlick.width
-                    spacing: root.compactLayout ? 3 : 6
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: root.compactLayout ? 4 : 6
-
-                        Label {
-                            text: root.trText("axis")
-                            color: "#52636d"
-                            font.pixelSize: root.compactLayout ? 11 : 12
-                            Layout.preferredWidth: root.compactLayout ? 36 : 42
-                        }
-
-                        Label {
-                            text: root.trText("layers")
-                            color: "#52636d"
-                            font.pixelSize: root.compactLayout ? 11 : 12
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: root.trText("edit")
-                            color: "#52636d"
-                            font.pixelSize: root.compactLayout ? 11 : 12
-                            horizontalAlignment: Text.AlignHCenter
-                            Layout.preferredWidth: root.compactLayout ? 68 : 76
-                        }
-                    }
-
-                    Repeater {
-                        model: root.clipAxes
-
-                        delegate: RowLayout {
-                            Layout.fillWidth: true
-                            spacing: root.compactLayout ? 4 : 6
-
-                            Label {
-                                text: modelData.axis
-                                color: modelData.color
-                                font.pixelSize: root.compactLayout ? 12 : 13
-                                font.bold: true
-                                Layout.preferredWidth: root.compactLayout ? 36 : 42
-                            }
-
-                            Label {
-                                text: root.clipCount(modelData.axis)
-                                color: "#16212a"
-                                font.pixelSize: root.compactLayout ? 14 : 15
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                Layout.fillWidth: true
-                            }
-
-                            RowLayout {
-                                spacing: root.compactLayout ? 3 : 4
-                                Layout.preferredWidth: root.compactLayout ? 68 : 76
-
-                                Button {
-                                    text: "-"
-                                    enabled: root.clipCount(modelData.axis) > 0
-                                    Layout.preferredWidth: root.compactLayout ? 31 : 34
-                                    Layout.preferredHeight: root.compactLayout ? 24 : 28
-                                    onClicked: {
-                                        inputLayer.forceActiveFocus()
-                                        root.adjustClip(modelData.axis, -1)
-                                    }
-                                }
-
-                                Button {
-                                    text: "+"
-                                    enabled: root.clipCount(modelData.axis) < root.boardSize
-                                    Layout.preferredWidth: root.compactLayout ? 31 : 34
-                                    Layout.preferredHeight: root.compactLayout ? 24 : 28
-                                    onClicked: {
-                                        inputLayer.forceActiveFocus()
-                                        root.adjustClip(modelData.axis, 1)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            }
-        }
+        app: root
+        branchPanelItem: branchPanel
+        visualPanelItem: visualPanel
     }
 }

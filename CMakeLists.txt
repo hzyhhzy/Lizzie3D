@@ -19,7 +19,16 @@ qt_add_qml_module(lizzie3d
     URI Lizzie3D
     VERSION 1.0
     QML_FILES
+        qml/AxisGizmoPanel.qml
+        qml/BoardInputLayer.qml
+        qml/BoardScene.qml
+        qml/BranchPanel.qml
+        qml/ClipPanel.qml
+        qml/CommandToolbar.qml
+        qml/HoverCoordinateBadge.qml
+        qml/InfoPanel.qml
         qml/Main.qml
+        qml/VisualSettingsPanel.qml
 )
 
 target_link_libraries(lizzie3d
