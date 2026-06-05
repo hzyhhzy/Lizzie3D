@@ -12,7 +12,7 @@ ApplicationWindow {
     minimumWidth: 1024
     minimumHeight: 640
     visible: true
-    color: "#d8e1e6"
+    color: "#bcc8cf"
     property string language: "zh"
     property var translations: ({
         "zh": {
@@ -65,7 +65,13 @@ ApplicationWindow {
             "allFileFilter": "所有文件 (*)",
             "sgfSaveTitle": "保存 SGF",
             "sgfSaved": "SGF 已保存",
-            "sgfSaveFailed": "SGF 保存失败"
+            "sgfSaveFailed": "SGF 保存失败",
+            "moveNumberDisplay": "手数显示",
+            "moveNumberAll": "全部手数",
+            "moveNumberLastOnly": "仅最后一手",
+            "moveNumberHidden": "隐藏数字",
+            "stoneLighting": "棋子打光",
+            "lightFollowsCamera": "灯光跟随镜头"
         },
         "en": {
             "windowTitle": "Lizzie3D",
@@ -117,7 +123,13 @@ ApplicationWindow {
             "allFileFilter": "All files (*)",
             "sgfSaveTitle": "Save SGF",
             "sgfSaved": "SGF saved",
-            "sgfSaveFailed": "Failed to save SGF"
+            "sgfSaveFailed": "Failed to save SGF",
+            "moveNumberDisplay": "Move labels",
+            "moveNumberAll": "All move numbers",
+            "moveNumberLastOnly": "Last move only",
+            "moveNumberHidden": "No numbers",
+            "stoneLighting": "Light stones",
+            "lightFollowsCamera": "Light follows camera"
         }
     })
 
@@ -241,13 +253,16 @@ ApplicationWindow {
     readonly property int maxBoardSize: 19
     readonly property int defaultBoardSize: 7
     property int boardSize: defaultBoardSize
-    property real spacing: 72
+    property real spacing: 100
     property real extent: (boardSize - 1) * spacing
     property real halfExtent: extent / 2
     readonly property bool compactLayout: width < 1500 || height < 820
+    readonly property real commandToolbarHeight: compactLayout ? 34 : 38
     readonly property real panelMargin: compactLayout ? 10 : 18
     readonly property real panelGap: compactLayout ? 8 : 14
     readonly property real panelInnerMargin: compactLayout ? 10 : 14
+    readonly property real topContentMargin: panelMargin
+    readonly property real bottomContentMargin: panelMargin + commandToolbarHeight + panelGap
     readonly property real infoPanelWidth: compactLayout ? 260 : 314
     readonly property real axisGizmoPanelSize: compactLayout ? 142 : 174
     readonly property real controlPanelWidth: compactLayout ? 270 : 300
@@ -262,6 +277,20 @@ ApplicationWindow {
     readonly property real boardStageCenterX: boardStageLeftReserve
                                                 + (width - boardStageLeftReserve - boardStageRightReserve) / 2
     readonly property real boardViewOffsetX: boardStageCenterX - width / 2
+    readonly property var commandToolbarItems: [
+        { "type": "button", "action": "candidates", "zh": "选点列表", "en": "Candidates", "width": 76 },
+        { "type": "button", "action": "refresh", "zh": "刷新", "en": "Refresh", "width": 52 },
+        { "type": "button", "action": "setMainBranch", "zh": "设为主分支", "en": "Set main", "width": 90 },
+        { "type": "button", "action": "clearBoard", "zh": "清空棋盘", "en": "Clear board", "width": 76 },
+        { "type": "button", "action": "delete", "zh": "删除", "en": "Delete", "width": 52 },
+        { "type": "button", "action": "firstMove", "zh": "|<", "en": "|<", "width": 40 },
+        { "type": "button", "action": "back10", "zh": "<<", "en": "<<", "width": 40 },
+        { "type": "button", "action": "back1", "zh": "<", "en": "<", "width": 38 },
+        { "type": "moveInput", "width": 56 },
+        { "type": "button", "action": "forward1", "zh": ">", "en": ">", "width": 38 },
+        { "type": "button", "action": "forward10", "zh": ">>", "en": ">>", "width": 40 },
+        { "type": "button", "action": "lastMove", "zh": ">|", "en": ">|", "width": 40 }
+    ]
 
     onCompactLayoutChanged: rebuildTreeLayout()
 
@@ -295,16 +324,31 @@ ApplicationWindow {
     property real cameraPitch: 28
     property real cameraDistance: 560
     property vector3d cameraTarget: Qt.vector3d(0, 0, 0)
-    readonly property real defaultStoneScale: 0.38
-    readonly property real defaultGridOpacity: 0.34
+    readonly property real quick3DPrimitiveDiameter: 100
+    readonly property real gridPointSphereScale: 0.25
+    readonly property real defaultStoneModelScale: 0.70
+    readonly property real minStoneModelScale: 0.30
+    readonly property real defaultStoneScale: defaultStoneModelScale * quick3DPrimitiveDiameter / spacing
+    readonly property real minStoneScale: minStoneModelScale * quick3DPrimitiveDiameter / spacing
+    readonly property real defaultGridOpacity: 0.25
+    readonly property real selectionSphereScale: gridPointSphereScale
     readonly property real defaultHiddenLayerTransparency: 0.86
     readonly property bool defaultHideGridLines: false
     readonly property bool defaultHideGridPoints: true
+    readonly property bool defaultStoneLightingEnabled: true
+    readonly property bool defaultLightFollowsCamera: true
+    readonly property int moveNumberModeAll: 0
+    readonly property int moveNumberModeLastOnly: 1
+    readonly property int moveNumberModeHidden: 2
+    readonly property int defaultMoveNumberDisplayMode: moveNumberModeAll
     property real stoneScale: defaultStoneScale
     property real gridOpacity: defaultGridOpacity
     property real hiddenLayerTransparency: defaultHiddenLayerTransparency
     property bool hideGridLines: defaultHideGridLines
     property bool hideGridPoints: defaultHideGridPoints
+    property bool stoneLightingEnabled: defaultStoneLightingEnabled
+    property bool lightFollowsCamera: defaultLightFollowsCamera
+    property int moveNumberDisplayMode: defaultMoveNumberDisplayMode
     property int clipRevision: 0
     property int clipPosX: 0
     property int clipNegX: 0
@@ -354,6 +398,9 @@ ApplicationWindow {
         hiddenLayerTransparency = defaultHiddenLayerTransparency
         hideGridLines = defaultHideGridLines
         hideGridPoints = defaultHideGridPoints
+        stoneLightingEnabled = defaultStoneLightingEnabled
+        lightFollowsCamera = defaultLightFollowsCamera
+        moveNumberDisplayMode = defaultMoveNumberDisplayMode
     }
 
     function rebuildBoardGeometry() {
@@ -394,7 +441,11 @@ ApplicationWindow {
     function gridRodColor(axis, x1, y1, z1) {
         if (gridRodHighlighted(axis, x1, y1, z1))
             return "#2fb97f"
-        return axis === 1 ? "#3f5968" : "#7b5f36"
+        if (axis === 0)
+            return "#3e2729"
+        if (axis === 1)
+            return "#29392c"
+        return "#283544"
     }
 
     function gridRodOpacity(axis, x1, y1, z1, x2, y2, z2) {
@@ -407,7 +458,7 @@ ApplicationWindow {
 
     function emptyPointOpacity(clipped, hovered) {
         if (hovered)
-            return 0.82
+            return 0.42
         if (hideGridPoints)
             return 0
         return clipped ? gridOpacity * hiddenLayerOpacity() : Math.max(0.08, gridOpacity * 0.36)
@@ -563,10 +614,28 @@ ApplicationWindow {
         return data
     }
 
-    function stoneAt(x, y, z) {
+    function stoneDataAt(x, y, z) {
         boardRevision
         var value = stones[keyFor(x, y, z)]
-        return value === undefined ? 0 : value
+        return value === undefined ? null : value
+    }
+
+    function stoneAt(x, y, z) {
+        var value = stoneDataAt(x, y, z)
+        if (!value)
+            return 0
+        return value.player === undefined ? value : value.player
+    }
+
+    function stoneMoveNumberAt(x, y, z) {
+        var value = stoneDataAt(x, y, z)
+        return value && value.moveNumber !== undefined ? value.moveNumber : 0
+    }
+
+    function isLastMoveAt(x, y, z) {
+        boardRevision
+        var node = currentNode()
+        return !!node && node.key === keyFor(x, y, z)
     }
 
     function nodeById(id) {
@@ -590,8 +659,13 @@ ApplicationWindow {
     function rebuildPositionFromNode(id) {
         var path = nodePath(id)
         var nextStones = ({})
-        for (var i = 0; i < path.length; ++i)
-            nextStones[path[i].key] = path[i].player
+        for (var i = 0; i < path.length; ++i) {
+            nextStones[path[i].key] = {
+                "player": path[i].player,
+                "moveNumber": path[i].moveNumber,
+                "nodeId": path[i].id
+            }
+        }
 
         stones = nextStones
         stoneCount = path.length
@@ -756,6 +830,329 @@ ApplicationWindow {
         rebuildTreeLayout()
     }
 
+    function hasAnyMoves() {
+        var rootNode = nodeById(0)
+        return !!rootNode && (rootNode.children || []).length > 0
+    }
+
+    function currentMoveNumberValue() {
+        var node = currentNode()
+        return node ? node.moveNumber : 0
+    }
+
+    function currentMoveNumberText() {
+        return String(currentMoveNumberValue())
+    }
+
+    function mainChildOf(node) {
+        var children = node ? (node.children || []) : []
+        return children.length > 0 ? nodeById(children[0]) : null
+    }
+
+    function gotoMoveNumber(value) {
+        var target = Math.round(clamp(isNaN(value) ? 0 : value, 0, boardSize * boardSize * boardSize))
+        var node = currentNode() || nodeById(0)
+        if (!node)
+            return
+
+        while (node && node.moveNumber > target)
+            node = nodeById(node.parent)
+
+        while (node && node.moveNumber < target) {
+            var child = mainChildOf(node)
+            if (!child)
+                break
+            node = child
+        }
+
+        if (node)
+            gotoNode(node.id)
+    }
+
+    function gotoFirstMove() {
+        var child = mainChildOf(nodeById(0))
+        gotoNode(child ? child.id : 0)
+    }
+
+    function gotoLastMove() {
+        var node = currentNode() || nodeById(0)
+        while (node) {
+            var child = mainChildOf(node)
+            if (!child)
+                break
+            node = child
+        }
+        if (node)
+            gotoNode(node.id)
+    }
+
+    function stepMove(delta) {
+        gotoMoveNumber(currentMoveNumberValue() + delta)
+    }
+
+    function promoteCurrentNodeToMainBranch() {
+        var path = nodePath(currentNodeId)
+        var changed = false
+
+        for (var i = 0; i < path.length; ++i) {
+            var child = path[i]
+            var parent = nodeById(child.parent)
+            if (!parent)
+                continue
+
+            var children = (parent.children || []).slice()
+            var index = children.indexOf(child.id)
+            if (index > 0) {
+                children.splice(index, 1)
+                children.unshift(child.id)
+                parent.children = children
+                changed = true
+            }
+        }
+
+        if (changed) {
+            gameNodes = gameNodes.slice()
+            rebuildTreeLayout()
+        }
+    }
+
+    function toolbarActionEnabled(action) {
+        if (action === "candidates" || action === "refresh")
+            return false
+        if (action === "setMainBranch" || action === "delete")
+            return currentNodeId !== 0
+        if (action === "clearBoard")
+            return hasAnyMoves()
+        if (action === "firstMove")
+            return hasAnyMoves() && currentMoveNumberValue() !== 1
+        if (action === "back10" || action === "back1")
+            return currentMoveNumberValue() > 0
+        if (action === "forward1" || action === "forward10" || action === "lastMove")
+            return !!mainChildOf(currentNode())
+        return true
+    }
+
+    function runToolbarAction(action) {
+        if (action === "setMainBranch")
+            promoteCurrentNodeToMainBranch()
+        else if (action === "clearBoard")
+            clearBoard()
+        else if (action === "delete")
+            deleteCurrentNode(true)
+        else if (action === "firstMove")
+            gotoFirstMove()
+        else if (action === "back10")
+            stepMove(-10)
+        else if (action === "back1")
+            stepMove(-1)
+        else if (action === "forward1")
+            stepMove(1)
+        else if (action === "forward10")
+            stepMove(10)
+        else if (action === "lastMove")
+            gotoLastMove()
+
+        inputLayer.forceActiveFocus()
+    }
+
+    function moveNumberDisplayText() {
+        if (moveNumberDisplayMode === moveNumberModeLastOnly)
+            return trText("moveNumberLastOnly")
+        if (moveNumberDisplayMode === moveNumberModeHidden)
+            return trText("moveNumberHidden")
+        return trText("moveNumberAll")
+    }
+
+    function cycleMoveNumberDisplayMode() {
+        moveNumberDisplayMode = (moveNumberDisplayMode + 1) % 3
+    }
+
+    function stoneNumberVisible(moveNumber, lastMove) {
+        if (moveNumber <= 0 || moveNumberDisplayMode === moveNumberModeHidden)
+            return false
+        if (moveNumberDisplayMode === moveNumberModeLastOnly)
+            return lastMove
+        return true
+    }
+
+    function stoneOverlayVisible(moveNumber, lastMove) {
+        return lastMove || stoneNumberVisible(moveNumber, lastMove)
+    }
+
+    function stoneNumberColor(player, lastMove) {
+        if (lastMove)
+            return "#e3342f"
+        return player === 1 ? "#f6fbff" : "#11161b"
+    }
+
+    function cameraUpVector() {
+        cameraYaw
+        cameraPitch
+        var yaw = cameraYaw * Math.PI / 180
+        var pitch = cameraPitch * Math.PI / 180
+        return Qt.vector3d(-Math.sin(pitch) * Math.sin(yaw),
+                           Math.cos(pitch),
+                           -Math.sin(pitch) * Math.cos(yaw))
+    }
+
+    function cameraBackVector() {
+        cameraYaw
+        cameraPitch
+        var yaw = cameraYaw * Math.PI / 180
+        var pitch = cameraPitch * Math.PI / 180
+        var cp = Math.cos(pitch)
+        return Qt.vector3d(Math.sin(yaw) * cp,
+                           Math.sin(pitch),
+                           Math.cos(yaw) * cp)
+    }
+
+    function cameraRightVector() {
+        cameraYaw
+        var yaw = cameraYaw * Math.PI / 180
+        return Qt.vector3d(Math.cos(yaw), 0, -Math.sin(yaw))
+    }
+
+    function dotVector(a, b) {
+        return a.x * b.x + a.y * b.y + a.z * b.z
+    }
+
+    function crossVector(a, b) {
+        return Qt.vector3d(a.y * b.z - a.z * b.y,
+                           a.z * b.x - a.x * b.z,
+                           a.x * b.y - a.y * b.x)
+    }
+
+    function normalizedVector(v, fallback) {
+        var length = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+        if (length < 0.0001)
+            return fallback
+        return Qt.vector3d(v.x / length, v.y / length, v.z / length)
+    }
+
+    function quaternionFromBasis(xAxis, yAxis, zAxis) {
+        var m00 = xAxis.x
+        var m01 = yAxis.x
+        var m02 = zAxis.x
+        var m10 = xAxis.y
+        var m11 = yAxis.y
+        var m12 = zAxis.y
+        var m20 = xAxis.z
+        var m21 = yAxis.z
+        var m22 = zAxis.z
+        var trace = m00 + m11 + m22
+        var s = 0
+
+        if (trace > 0) {
+            s = Math.sqrt(trace + 1) * 2
+            return Qt.quaternion(0.25 * s,
+                                 (m21 - m12) / s,
+                                 (m02 - m20) / s,
+                                 (m10 - m01) / s)
+        }
+
+        if (m00 > m11 && m00 > m22) {
+            s = Math.sqrt(1 + m00 - m11 - m22) * 2
+            return Qt.quaternion((m21 - m12) / s,
+                                 0.25 * s,
+                                 (m01 + m10) / s,
+                                 (m02 + m20) / s)
+        }
+
+        if (m11 > m22) {
+            s = Math.sqrt(1 + m11 - m00 - m22) * 2
+            return Qt.quaternion((m02 - m20) / s,
+                                 (m01 + m10) / s,
+                                 0.25 * s,
+                                 (m12 + m21) / s)
+        }
+
+        s = Math.sqrt(1 + m22 - m00 - m11) * 2
+        return Qt.quaternion((m10 - m01) / s,
+                             (m02 + m20) / s,
+                             (m12 + m21) / s,
+                             0.25 * s)
+    }
+
+    function stoneBillboardPosition(basePosition) {
+        cameraYaw
+        cameraPitch
+        cameraDistance
+        cameraTarget
+        var dx = boardCamera.position.x - basePosition.x
+        var dy = boardCamera.position.y - basePosition.y
+        var dz = boardCamera.position.z - basePosition.z
+        var length = Math.sqrt(dx * dx + dy * dy + dz * dz)
+        var direction = length < 0.001
+                        ? cameraBackVector()
+                        : Qt.vector3d(dx / length, dy / length, dz / length)
+        var radius = quick3DPrimitiveDiameter * stoneModelScale() * 0.5 * 1.05
+        return Qt.vector3d(basePosition.x + direction.x * radius,
+                           basePosition.y + direction.y * radius,
+                           basePosition.z + direction.z * radius)
+    }
+
+    function stoneBillboardRotation(labelPosition) {
+        cameraYaw
+        cameraPitch
+        cameraDistance
+        cameraTarget
+        var normal = normalizedVector(Qt.vector3d(boardCamera.position.x - labelPosition.x,
+                                                  boardCamera.position.y - labelPosition.y,
+                                                  boardCamera.position.z - labelPosition.z),
+                                      cameraBackVector())
+        var cameraUp = cameraUpVector()
+        var cameraRight = cameraRightVector()
+        var upProjection = Qt.vector3d(cameraUp.x - normal.x * dotVector(cameraUp, normal),
+                                       cameraUp.y - normal.y * dotVector(cameraUp, normal),
+                                       cameraUp.z - normal.z * dotVector(cameraUp, normal))
+        var rightProjection = Qt.vector3d(cameraRight.x - normal.x * dotVector(cameraRight, normal),
+                                          cameraRight.y - normal.y * dotVector(cameraRight, normal),
+                                          cameraRight.z - normal.z * dotVector(cameraRight, normal))
+        var up = normalizedVector(upProjection, normalizedVector(crossVector(normal, cameraRight), cameraUp))
+        var right = normalizedVector(crossVector(up, normal), normalizedVector(rightProjection, cameraRight))
+        up = normalizedVector(crossVector(normal, right), up)
+        return quaternionFromBasis(right, up, normal)
+    }
+
+    function stoneBillboardScale() {
+        return stoneModelScale() * 0.78
+    }
+
+    function stoneModelScale() {
+        return stoneScale * spacing / quick3DPrimitiveDiameter
+    }
+
+    function scenePointLightPosition() {
+        cameraYaw
+        cameraPitch
+        cameraDistance
+        cameraTarget
+        lightFollowsCamera
+
+        if (!lightFollowsCamera)
+            return Qt.vector3d(-360, 460, -420)
+
+        var back = cameraBackVector()
+        var up = cameraUpVector()
+        var right = cameraRightVector()
+        var distance = Math.max(280, cameraDistance * 0.46)
+        return Qt.vector3d(cameraTarget.x + back.x * distance + up.x * 220 - right.x * 160,
+                           cameraTarget.y + back.y * distance + up.y * 220 - right.y * 160,
+                           cameraTarget.z + back.z * distance + up.z * 220 - right.z * 160)
+    }
+
+    function sceneDirectionalLightPitch() {
+        cameraPitch
+        lightFollowsCamera
+        return lightFollowsCamera ? -cameraPitch - 20 : -46
+    }
+
+    function sceneDirectionalLightYaw() {
+        cameraYaw
+        lightFollowsCamera
+        return lightFollowsCamera ? cameraYaw + 22 : 34
+    }
+
     function xCoordinateText(x) {
         return String.fromCharCode("A".charCodeAt(0) + x)
     }
@@ -843,22 +1240,22 @@ ApplicationWindow {
     function buildMainAxisLabels() {
         var labels = []
         for (var i = 0; i < boardSize; ++i) {
-            labels.push({ "label": xCoordinateText(i), "x": i, "y": -1.34, "z": -1, "color": "#d84a43", "size": 0.24, "fontSize": 72 })
-            labels.push({ "label": yCoordinateText(i), "x": -1.34, "y": i, "z": -1, "color": "#39a66a", "size": 0.24, "fontSize": 72 })
-            labels.push({ "label": zCoordinateText(i), "x": -1.34, "y": -1, "z": i, "color": "#3d73d8", "size": 0.24, "fontSize": 72 })
+            labels.push({ "label": xCoordinateText(i), "x": i, "y": -1.34, "z": -1, "color": "#d84a43", "size": 0.48, "fontSize": 144 })
+            labels.push({ "label": yCoordinateText(i), "x": -1.34, "y": i, "z": -1, "color": "#39a66a", "size": 0.48, "fontSize": 144 })
+            labels.push({ "label": zCoordinateText(i), "x": -1.34, "y": -1, "z": i, "color": "#3d73d8", "size": 0.48, "fontSize": 144 })
         }
 
         var axisEnd = boardSize + 0.42
-        labels.push({ "label": "X", "x": axisEnd, "y": -1, "z": -1, "color": "#d84a43", "size": 0.34, "fontSize": 82 })
-        labels.push({ "label": "Y", "x": -1, "y": axisEnd, "z": -1, "color": "#39a66a", "size": 0.34, "fontSize": 82 })
-        labels.push({ "label": "Z", "x": -1, "y": -1, "z": axisEnd, "color": "#3d73d8", "size": 0.34, "fontSize": 82 })
+        labels.push({ "label": "X", "x": axisEnd, "y": -1, "z": -1, "color": "#d84a43", "size": 0.68, "fontSize": 164 })
+        labels.push({ "label": "Y", "x": -1, "y": axisEnd, "z": -1, "color": "#39a66a", "size": 0.68, "fontSize": 164 })
+        labels.push({ "label": "Z", "x": -1, "y": -1, "z": axisEnd, "color": "#3d73d8", "size": 0.68, "fontSize": 164 })
         return labels
     }
 
     function rebuildTreeLayout() {
         var rowHeight = 38
         var columnWidth = 42
-        var margin = 24
+        var margin = compactLayout ? 32 : 36
         var radius = 12
         var laneById = ({})
         var nextLane = 0
@@ -1068,18 +1465,24 @@ ApplicationWindow {
         refreshCamera()
     }
 
-    function moveTarget(forward, right, up, amountOverride) {
+    function moveTarget(depthForward, screenRight, screenUp, amountOverride) {
         var yaw = cameraYaw * Math.PI / 180
-        var forwardX = Math.sin(yaw)
-        var forwardZ = Math.cos(yaw)
+        var pitch = cameraPitch * Math.PI / 180
+        var cp = Math.cos(pitch)
+        var viewForwardX = -Math.sin(yaw) * cp
+        var viewForwardY = -Math.sin(pitch)
+        var viewForwardZ = -Math.cos(yaw) * cp
         var rightX = Math.cos(yaw)
         var rightZ = -Math.sin(yaw)
+        var upX = -Math.sin(pitch) * Math.sin(yaw)
+        var upY = Math.cos(pitch)
+        var upZ = -Math.sin(pitch) * Math.cos(yaw)
         var amount = amountOverride === undefined ? 36 : amountOverride
 
         cameraTarget = Qt.vector3d(
-            cameraTarget.x + amount * (forward * forwardX + right * rightX),
-            cameraTarget.y + amount * up,
-            cameraTarget.z + amount * (forward * forwardZ + right * rightZ))
+            cameraTarget.x + amount * (depthForward * viewForwardX + screenRight * rightX + screenUp * upX),
+            cameraTarget.y + amount * (depthForward * viewForwardY + screenUp * upY),
+            cameraTarget.z + amount * (depthForward * viewForwardZ + screenRight * rightZ + screenUp * upZ))
         refreshCamera()
     }
 
@@ -1099,7 +1502,16 @@ ApplicationWindow {
     }
 
     function modelIsGridPoint(model) {
-        return model && model.gridPoint === true
+        return model && model.selectionPoint === true
+    }
+
+    function pointFromMouse(x, y) {
+        var result = boardView.pick(x, y)
+        var hit = result.objectHit
+        if (!modelIsGridPoint(hit) || isClipped(hit.gx, hit.gy, hit.gz))
+            return null
+
+        return { "x": hit.gx, "y": hit.gy, "z": hit.gz }
     }
 
     function clearHover() {
@@ -1110,12 +1522,11 @@ ApplicationWindow {
     }
 
     function updateHover(x, y) {
-        var result = boardView.pick(x, y)
-        var hit = result.objectHit
-        if (modelIsGridPoint(hit)) {
-            hoverX = hit.gx
-            hoverY = hit.gy
-            hoverZ = hit.gz
+        var point = pointFromMouse(x, y)
+        if (point) {
+            hoverX = point.x
+            hoverY = point.y
+            hoverZ = point.z
             hoverKey = keyFor(hoverX, hoverY, hoverZ)
         } else {
             clearHover()
@@ -1123,10 +1534,9 @@ ApplicationWindow {
     }
 
     function placeFromMouse(x, y) {
-        var result = boardView.pick(x, y)
-        var hit = result.objectHit
-        if (modelIsGridPoint(hit) && !isClipped(hit.gx, hit.gy, hit.gz))
-            placeStone(hit.gx, hit.gy, hit.gz)
+        var point = pointFromMouse(x, y)
+        if (point)
+            placeStone(point.x, point.y, point.z)
     }
 
     onClipRevisionChanged: {
@@ -1140,17 +1550,123 @@ ApplicationWindow {
         resetCamera()
     }
 
+    Rectangle {
+        id: commandToolbar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: root.commandToolbarHeight
+        z: 40
+        clip: true
+        color: "#edf2f5"
+        border.color: "#b8c5cc"
+
+        Flickable {
+            id: commandToolbarFlick
+            anchors.fill: parent
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            contentWidth: commandToolbarRow.implicitWidth
+            contentHeight: height
+            interactive: contentWidth > width
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+
+            Row {
+                id: commandToolbarRow
+                height: commandToolbarFlick.height
+                spacing: root.compactLayout ? 3 : 4
+
+                Repeater {
+                    model: root.commandToolbarItems
+
+                    delegate: Item {
+                        width: Math.round((modelData.width || 52) * (root.compactLayout ? 0.94 : 1.0))
+                        height: commandToolbarRow.height
+
+                        Button {
+                            visible: modelData.type === "button"
+                            enabled: root.toolbarActionEnabled(modelData.action || "")
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: parent.height - (root.compactLayout ? 6 : 8)
+                            text: root.language === "zh" ? modelData.zh : modelData.en
+                            font.pixelSize: root.compactLayout ? 11 : 12
+                            leftPadding: 4
+                            rightPadding: 4
+                            topPadding: 2
+                            bottomPadding: 2
+                            onClicked: root.runToolbarAction(modelData.action || "")
+                        }
+
+                        TextField {
+                            id: moveNumberInput
+                            visible: modelData.type === "moveInput"
+                            property bool committingMoveNumber: false
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: parent.height - (root.compactLayout ? 6 : 8)
+                            selectByMouse: true
+                            horizontalAlignment: TextInput.AlignHCenter
+                            verticalAlignment: TextInput.AlignVCenter
+                            font.pixelSize: root.compactLayout ? 11 : 12
+                            validator: IntValidator {
+                                bottom: 0
+                                top: root.boardSize * root.boardSize * root.boardSize
+                            }
+                            function commitMoveNumber() {
+                                if (committingMoveNumber)
+                                    return
+
+                                committingMoveNumber = true
+                                root.gotoMoveNumber(parseInt(text, 10))
+                                text = root.currentMoveNumberText()
+                                committingMoveNumber = false
+                            }
+                            Component.onCompleted: text = root.currentMoveNumberText()
+                            onActiveFocusChanged: {
+                                if (activeFocus)
+                                    selectAll()
+                            }
+                            onAccepted: {
+                                commitMoveNumber()
+                                inputLayer.forceActiveFocus()
+                            }
+                            onEditingFinished: commitMoveNumber()
+
+                            Connections {
+                                target: root
+
+                                function onCurrentNodeIdChanged() {
+                                    if (!moveNumberInput.activeFocus)
+                                        moveNumberInput.text = root.currentMoveNumberText()
+                                }
+
+                                function onBoardRevisionChanged() {
+                                    if (!moveNumberInput.activeFocus)
+                                        moveNumberInput.text = root.currentMoveNumberText()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     View3D {
         id: boardView
         x: root.boardViewOffsetX
         y: 0
         width: parent.width
-        height: parent.height
+        height: parent.height - root.commandToolbarHeight - root.panelGap
         camera: boardCamera
 
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
-            clearColor: "#d8e1e6"
+            clearColor: "#bcc8cf"
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.High
         }
@@ -1163,15 +1679,15 @@ ApplicationWindow {
         }
 
         DirectionalLight {
-            eulerRotation.x: -46
-            eulerRotation.y: 34
-            brightness: 1.55
-            castsShadow: true
+            eulerRotation.x: root.sceneDirectionalLightPitch()
+            eulerRotation.y: root.sceneDirectionalLightYaw()
+            brightness: 0.85
+            castsShadow: false
         }
 
         PointLight {
-            position: Qt.vector3d(-360, 460, -420)
-            brightness: 165
+            position: root.scenePointLightPosition()
+            brightness: 80
             color: "#ffffff"
         }
 
@@ -1273,18 +1789,15 @@ ApplicationWindow {
                     source: "#Rectangle"
                     pickable: false
                     position: labelPosition
-                    rotation: Quaternion.lookAt(labelPosition,
-                                                boardCamera.position,
-                                                Qt.vector3d(0, 0, 1),
-                                                Qt.vector3d(0, 1, 0))
+                    rotation: root.stoneBillboardRotation(labelPosition)
                     scale: Qt.vector3d(modelData.size, modelData.size, modelData.size)
                     materials: PrincipledMaterial {
                         lighting: PrincipledMaterial.NoLighting
                         baseColor: "#ffffff"
                         baseColorMap: Texture {
                             sourceItem: Item {
-                                width: 128
-                                height: 128
+                                width: 256
+                                height: 256
 
                                 Text {
                                     anchors.centerIn: parent
@@ -1308,18 +1821,45 @@ ApplicationWindow {
                     readonly property int gx: modelData.x
                     readonly property int gy: modelData.y
                     readonly property int gz: modelData.z
-                    readonly property bool gridPoint: true
-                    property int occupant: root.stoneAt(gx, gy, gz)
+                    readonly property bool selectionPoint: true
                     property bool clipped: root.isClipped(gx, gy, gz)
 
                     source: "#Sphere"
                     pickable: !clipped
+                    visible: !clipped
+                    position: modelData.position
+                    scale: Qt.vector3d(root.selectionSphereScale,
+                                       root.selectionSphereScale,
+                                       root.selectionSphereScale)
+                    opacity: 0.001
+                    materials: PrincipledMaterial {
+                        lighting: PrincipledMaterial.NoLighting
+                        baseColor: "#ffffff"
+                        alphaMode: PrincipledMaterial.Blend
+                    }
+                }
+            }
+
+            Repeater3D {
+                model: root.points
+                delegate: Model {
+                    readonly property int gx: modelData.x
+                    readonly property int gy: modelData.y
+                    readonly property int gz: modelData.z
+                    readonly property bool gridPoint: true
+                    property int occupant: root.stoneAt(gx, gy, gz)
+                    property bool clipped: root.isClipped(gx, gy, gz)
+                    property bool hovered: root.hoverKey === modelData.key
+                    readonly property real pointScale: hovered ? root.stoneModelScale() : root.gridPointSphereScale
+
+                    source: "#Sphere"
+                    pickable: false
                     visible: occupant === 0
                     position: modelData.position
-                    scale: Qt.vector3d(0.14, 0.14, 0.14)
-                    opacity: root.emptyPointOpacity(clipped, root.hoverKey === modelData.key)
+                    scale: Qt.vector3d(pointScale, pointScale, pointScale)
+                    opacity: root.emptyPointOpacity(clipped, hovered)
                     materials: PrincipledMaterial {
-                        baseColor: root.hoverKey === modelData.key ? "#2fb97f" : "#6e8794"
+                        baseColor: hovered ? "#2fb97f" : "#6e8794"
                         alphaMode: PrincipledMaterial.Blend
                         roughness: 0.54
                     }
@@ -1337,16 +1877,94 @@ ApplicationWindow {
                     property bool clipped: root.isClipped(gx, gy, gz)
 
                     source: "#Sphere"
-                    pickable: !clipped
+                    pickable: false
                     visible: occupant !== 0
                     position: modelData.position
-                    scale: Qt.vector3d(root.stoneScale, root.stoneScale, root.stoneScale)
+                    scale: Qt.vector3d(root.stoneModelScale(),
+                                       root.stoneModelScale(),
+                                       root.stoneModelScale())
                     opacity: clipped ? root.hiddenLayerOpacity() : 1
                     materials: PrincipledMaterial {
+                        lighting: root.stoneLightingEnabled
+                                  ? PrincipledMaterial.FragmentLighting
+                                  : PrincipledMaterial.NoLighting
                         baseColor: occupant === 1 ? "#06080b" : "#fff8e8"
                         alphaMode: PrincipledMaterial.Blend
                         metalness: 0
-                        roughness: occupant === 1 ? 0.28 : 0.22
+                        roughness: occupant === 1 ? 0.46 : 0.62
+                    }
+                }
+            }
+
+            Repeater3D {
+                model: root.points
+                delegate: Model {
+                    readonly property int gx: modelData.x
+                    readonly property int gy: modelData.y
+                    readonly property int gz: modelData.z
+                    property int occupant: root.stoneAt(gx, gy, gz)
+                    property int moveNumber: root.stoneMoveNumberAt(gx, gy, gz)
+                    property bool lastMove: root.isLastMoveAt(gx, gy, gz)
+                    property bool clipped: root.isClipped(gx, gy, gz)
+                    readonly property vector3d labelPosition: root.stoneBillboardPosition(modelData.position)
+                    readonly property real labelScale: root.stoneBillboardScale()
+
+                    source: "#Rectangle"
+                    pickable: false
+                    visible: occupant !== 0 && root.stoneOverlayVisible(moveNumber, lastMove)
+                    position: labelPosition
+                    rotation: root.stoneBillboardRotation(labelPosition)
+                    scale: Qt.vector3d(labelScale, labelScale, labelScale)
+                    opacity: clipped ? root.hiddenLayerOpacity() : 1
+                    materials: PrincipledMaterial {
+                        lighting: PrincipledMaterial.NoLighting
+                        baseColor: "#ffffff"
+                        baseColorMap: Texture {
+                            sourceItem: Item {
+                                width: 128
+                                height: 128
+
+                                Canvas {
+                                    id: lastMoveMarker3d
+                                    visible: lastMove
+                                    anchors.fill: parent
+                                    onVisibleChanged: requestPaint()
+                                    onPaint: {
+                                        var ctx = getContext("2d")
+                                        ctx.clearRect(0, 0, width, height)
+                                        if (!lastMove)
+                                            return
+
+                                        ctx.fillStyle = "#e3342f"
+                                        ctx.beginPath()
+                                        ctx.moveTo(10, 10)
+                                        ctx.lineTo(56, 10)
+                                        ctx.lineTo(10, 56)
+                                        ctx.closePath()
+                                        ctx.fill()
+                                    }
+                                    Component.onCompleted: requestPaint()
+                                }
+
+                                Text {
+                                    visible: root.stoneNumberVisible(moveNumber, lastMove)
+                                    anchors.centerIn: parent
+                                    width: 108
+                                    height: 108
+                                    text: moveNumber
+                                    color: root.stoneNumberColor(occupant, lastMove)
+                                    font.bold: true
+                                    font.pixelSize: 72
+                                    fontSizeMode: Text.Fit
+                                    minimumPixelSize: 18
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
+                        alphaMode: PrincipledMaterial.Mask
+                        alphaCutoff: 0.04
+                        cullMode: Material.NoCulling
                     }
                 }
             }
@@ -1424,14 +2042,14 @@ ApplicationWindow {
             running: inputLayer.hasHeldNavigationKey()
 
             onTriggered: {
-                var forward = (inputLayer.forwardHeld ? 1 : 0) - (inputLayer.backHeld ? 1 : 0)
-                var right = (inputLayer.rightHeld ? 1 : 0) - (inputLayer.leftHeld ? 1 : 0)
-                var up = (inputLayer.upHeld ? 1 : 0) - (inputLayer.downHeld ? 1 : 0)
-                var length = Math.sqrt(forward * forward + right * right + up * up)
+                var depthForward = (inputLayer.forwardHeld ? 1 : 0) - (inputLayer.backHeld ? 1 : 0)
+                var screenRight = (inputLayer.rightHeld ? 1 : 0) - (inputLayer.leftHeld ? 1 : 0)
+                var screenUp = (inputLayer.upHeld ? 1 : 0) - (inputLayer.downHeld ? 1 : 0)
+                var length = Math.sqrt(depthForward * depthForward + screenRight * screenRight + screenUp * screenUp)
 
                 if (length > 0) {
                     var step = Math.max(3.6, root.cameraDistance * 0.006)
-                    root.moveTarget(forward / length, right / length, up / length, step)
+                    root.moveTarget(depthForward / length, screenRight / length, screenUp / length, step)
                 }
 
                 var turn = (inputLayer.turnRightHeld ? 1 : 0) - (inputLayer.turnLeftHeld ? 1 : 0)
@@ -1444,10 +2062,10 @@ ApplicationWindow {
 
         Keys.onPressed: function(event) {
             if (event.key === Qt.Key_W) {
-                inputLayer.forwardHeld = true
+                inputLayer.upHeld = true
                 event.accepted = true
             } else if (event.key === Qt.Key_S) {
-                inputLayer.backHeld = true
+                inputLayer.downHeld = true
                 event.accepted = true
             } else if (event.key === Qt.Key_A) {
                 inputLayer.leftHeld = true
@@ -1456,9 +2074,15 @@ ApplicationWindow {
                 inputLayer.rightHeld = true
                 event.accepted = true
             } else if (event.key === Qt.Key_Q) {
-                root.adjustClip(root.frontFacingClipAxis(), -1)
+                inputLayer.forwardHeld = true
                 event.accepted = true
             } else if (event.key === Qt.Key_E) {
+                inputLayer.backHeld = true
+                event.accepted = true
+            } else if (event.key === Qt.Key_X) {
+                root.adjustClip(root.frontFacingClipAxis(), -1)
+                event.accepted = true
+            } else if (event.key === Qt.Key_Z) {
                 root.adjustClip(root.frontFacingClipAxis(), 1)
                 event.accepted = true
             } else if (event.key === Qt.Key_Left) {
@@ -1481,21 +2105,31 @@ ApplicationWindow {
                 if (!event.isAutoRepeat)
                     root.requestDeleteCurrentNode()
                 event.accepted = true
+            } else if (event.key === Qt.Key_M) {
+                if (!event.isAutoRepeat)
+                    root.cycleMoveNumberDisplayMode()
+                event.accepted = true
             }
         }
 
         Keys.onReleased: function(event) {
             if (event.key === Qt.Key_W) {
-                inputLayer.forwardHeld = false
+                inputLayer.upHeld = false
                 event.accepted = true
             } else if (event.key === Qt.Key_S) {
-                inputLayer.backHeld = false
+                inputLayer.downHeld = false
                 event.accepted = true
             } else if (event.key === Qt.Key_A) {
                 inputLayer.leftHeld = false
                 event.accepted = true
             } else if (event.key === Qt.Key_D) {
                 inputLayer.rightHeld = false
+                event.accepted = true
+            } else if (event.key === Qt.Key_Q) {
+                inputLayer.forwardHeld = false
+                event.accepted = true
+            } else if (event.key === Qt.Key_E) {
+                inputLayer.backHeld = false
                 event.accepted = true
             } else if (event.key === Qt.Key_Left) {
                 inputLayer.turnLeftHeld = false
@@ -1570,8 +2204,9 @@ ApplicationWindow {
     Rectangle {
         id: axisGizmoPanel
         anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: root.panelMargin
+        anchors.top: parent.top
+        anchors.leftMargin: root.panelMargin + root.infoPanelWidth + root.panelGap
+        anchors.topMargin: root.topContentMargin
         width: root.axisGizmoPanelSize
         height: root.axisGizmoPanelSize
         radius: 8
@@ -1718,7 +2353,8 @@ ApplicationWindow {
     Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
-        anchors.margins: root.panelMargin
+        anchors.leftMargin: root.panelMargin
+        anchors.topMargin: root.topContentMargin
         width: root.infoPanelWidth
         height: 166
         radius: 8
@@ -1785,7 +2421,9 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.margins: root.panelMargin
+        anchors.rightMargin: root.panelMargin
+        anchors.topMargin: root.topContentMargin
+        anchors.bottomMargin: root.bottomContentMargin
         width: root.branchPanelWidth
         radius: 8
         color: "#f3f7f9"
@@ -1838,6 +2476,25 @@ ApplicationWindow {
                         onPaint: {
                             var ctx = getContext("2d")
                             ctx.clearRect(0, 0, width, height)
+
+                            var leftNodeByMove = ({})
+                            for (var r = 0; r < root.treeNodes.length; ++r) {
+                                var rowNode = root.treeNodes[r]
+                                var currentLeft = leftNodeByMove[rowNode.moveNumber]
+                                if (!currentLeft || rowNode.x < currentLeft.x)
+                                    leftNodeByMove[rowNode.moveNumber] = rowNode
+                            }
+
+                            ctx.font = "9px sans-serif"
+                            ctx.textAlign = "right"
+                            ctx.textBaseline = "middle"
+                            ctx.fillStyle = "#6f7f88"
+                            for (var moveNumber in leftNodeByMove) {
+                                var leftNode = leftNodeByMove[moveNumber]
+                                ctx.fillText(String(leftNode.moveNumber),
+                                             Math.max(10, leftNode.x - leftNode.radius - 7),
+                                             leftNode.y)
+                            }
 
                             ctx.lineCap = "round"
                             ctx.lineJoin = "round"
@@ -1910,7 +2567,7 @@ ApplicationWindow {
         anchors.right: branchPanel.left
         anchors.rightMargin: root.panelGap
         anchors.top: parent.top
-        anchors.topMargin: root.panelMargin
+        anchors.topMargin: root.topContentMargin
         width: root.controlPanelWidth
         height: root.visualPanelHeight
         radius: 8
@@ -1990,8 +2647,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
 
                 Slider {
-                    from: 0.26
-                    to: 0.56
+                    from: root.minStoneScale
+                    to: 1.00
                     value: root.stoneScale
                     stepSize: 0.01
                     Layout.fillWidth: true
@@ -2004,6 +2661,67 @@ ApplicationWindow {
                     onClicked: {
                         inputLayer.forceActiveFocus()
                         root.stoneScale = root.defaultStoneScale
+                    }
+                }
+            }
+
+            Label {
+                text: root.trText("moveNumberDisplay") + "  " + root.moveNumberDisplayText()
+                color: "#2f414c"
+                font.pixelSize: root.compactLayout ? 12 : 14
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                ComboBox {
+                    model: [
+                        root.trText("moveNumberAll"),
+                        root.trText("moveNumberLastOnly"),
+                        root.trText("moveNumberHidden")
+                    ]
+                    currentIndex: root.moveNumberDisplayMode
+                    Layout.fillWidth: true
+                    onActivated: function(index) {
+                        inputLayer.forceActiveFocus()
+                        root.moveNumberDisplayMode = index
+                    }
+                }
+
+                Button {
+                    text: root.trText("reset")
+                    Layout.preferredWidth: root.compactLayout ? 56 : 62
+                    onClicked: {
+                        inputLayer.forceActiveFocus()
+                        root.moveNumberDisplayMode = root.defaultMoveNumberDisplayMode
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: root.compactLayout ? 4 : 8
+
+                CheckBox {
+                    text: root.trText("stoneLighting")
+                    checked: root.stoneLightingEnabled
+                    font.pixelSize: root.compactLayout ? 11 : 13
+                    Layout.fillWidth: true
+                    onToggled: {
+                        inputLayer.forceActiveFocus()
+                        root.stoneLightingEnabled = checked
+                    }
+                }
+
+                CheckBox {
+                    text: root.trText("lightFollowsCamera")
+                    checked: root.lightFollowsCamera
+                    font.pixelSize: root.compactLayout ? 11 : 13
+                    Layout.fillWidth: true
+                    onToggled: {
+                        inputLayer.forceActiveFocus()
+                        root.lightFollowsCamera = checked
                     }
                 }
             }
@@ -2103,7 +2821,7 @@ ApplicationWindow {
         anchors.top: visualPanel.bottom
         anchors.topMargin: root.panelGap
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: root.panelMargin
+        anchors.bottomMargin: root.bottomContentMargin
         width: root.controlPanelWidth
         radius: 8
         color: "#f3f7f9"
