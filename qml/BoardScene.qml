@@ -65,24 +65,19 @@ View3D {
         }
 
         Repeater3D {
-            model: [0, 1, 2]
+            model: app.hoverGridRods()
 
             delegate: Model {
-                readonly property int axis: modelData
-
-                visible: app.hoverKey !== "" && !app.hideGridLines
+                source: "#Cube"
+                visible: modelData.opacity > 0
                 pickable: false
-                geometry: ProceduralMesh {
-                    positions: app.hoverGridLinePositions(axis)
-                    colors: app.hoverGridLineColors(axis)
-                    primitiveMode: ProceduralMesh.Lines
-                }
+                position: modelData.position
+                scale: modelData.scale
+                opacity: modelData.opacity
                 materials: PrincipledMaterial {
                     lighting: PrincipledMaterial.NoLighting
-                    baseColor: "#ffffff"
-                    vertexColorsEnabled: true
+                    baseColor: "#2fb97f"
                     alphaMode: PrincipledMaterial.Blend
-                    lineWidth: 2.25
                 }
             }
         }

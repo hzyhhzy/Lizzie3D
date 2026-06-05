@@ -179,12 +179,12 @@ Rectangle {
             Layout.fillWidth: true
 
             Slider {
-                from: 0.12
-                to: 0.9
-                value: app.gridOpacity
-                stepSize: 0.01
+                from: 0
+                to: 100
+                value: app.gridOpacity * 100
+                stepSize: 1
                 Layout.fillWidth: true
-                onMoved: app.gridOpacity = value
+                onMoved: app.gridOpacity = value / 100
             }
 
             Button {

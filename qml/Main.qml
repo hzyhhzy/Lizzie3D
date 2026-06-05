@@ -361,10 +361,10 @@ ApplicationWindow {
     readonly property real minStoneModelScale: 0.30
     readonly property real defaultStoneScale: defaultStoneModelScale * quick3DPrimitiveDiameter / spacing
     readonly property real minStoneScale: minStoneModelScale * quick3DPrimitiveDiameter / spacing
-    readonly property real defaultGridOpacity: 0.25
+    readonly property real defaultGridOpacity: 0.30
     readonly property real defaultHiddenLayerTransparency: 0.86
     readonly property bool defaultHideGridLines: false
-    readonly property bool defaultHideGridPoints: true
+    readonly property bool defaultHideGridPoints: false
     readonly property bool defaultStoneLightingEnabled: true
     readonly property bool defaultLightFollowsCamera: true
     readonly property int moveNumberModeAll: 0
@@ -525,28 +525,37 @@ ApplicationWindow {
         return data
     }
 
-    function hoverGridLinePositions(axis) {
-        var data = []
-        if (hoverKey === "")
-            return data
-
-        var fixed1 = axis === 0 ? hoverY : hoverX
-        var fixed2 = axis === 2 ? hoverY : hoverZ
-        for (var i = 0; i < boardSize - 1; ++i)
-            appendGridLineSegment(data, axis, i, i + 1, fixed1, fixed2)
-        return data
+    function appendHoverGridRod(data, axis, a, b, fixed1, fixed2) {
+        var start = axis === 0 ? pointPosition(a, fixed1, fixed2)
+                  : axis === 1 ? pointPosition(fixed1, a, fixed2)
+                               : pointPosition(fixed1, fixed2, a)
+        var end = axis === 0 ? pointPosition(b, fixed1, fixed2)
+                : axis === 1 ? pointPosition(fixed1, b, fixed2)
+                             : pointPosition(fixed1, fixed2, b)
+        var lengthScale = spacing / quick3DPrimitiveDiameter
+        var thicknessScale = spacing * 0.075 / quick3DPrimitiveDiameter
+        data.push({
+            "position": Qt.vector3d((start.x + end.x) * 0.5,
+                                    (start.y + end.y) * 0.5,
+                                    (start.z + end.z) * 0.5),
+            "scale": axis === 0 ? Qt.vector3d(lengthScale, thicknessScale, thicknessScale)
+                     : axis === 1 ? Qt.vector3d(thicknessScale, lengthScale, thicknessScale)
+                                  : Qt.vector3d(thicknessScale, thicknessScale, lengthScale),
+            "opacity": gridLineSegmentOpacity(axis, a, b, fixed1, fixed2, true)
+        })
     }
 
-    function hoverGridLineColors(axis) {
+    function hoverGridRods() {
         var data = []
-        if (hoverKey === "")
+        if (hoverKey === "" || hideGridLines)
             return data
 
-        var rgb = Qt.vector3d(0x2f / 255, 0xb9 / 255, 0x7f / 255)
-        var fixed1 = axis === 0 ? hoverY : hoverX
-        var fixed2 = axis === 2 ? hoverY : hoverZ
-        for (var i = 0; i < boardSize - 1; ++i)
-            appendGridLineColor(data, rgb, gridLineSegmentOpacity(axis, i, i + 1, fixed1, fixed2, true))
+        for (var axis = 0; axis < 3; ++axis) {
+            var fixed1 = axis === 0 ? hoverY : hoverX
+            var fixed2 = axis === 2 ? hoverY : hoverZ
+            for (var i = 0; i < boardSize - 1; ++i)
+                appendHoverGridRod(data, axis, i, i + 1, fixed1, fixed2)
+        }
         return data
     }
 
@@ -555,7 +564,7 @@ ApplicationWindow {
             return 0.42
         if (hideGridPoints)
             return 0
-        return clipped ? gridOpacity * hiddenLayerOpacity() : Math.max(0.08, gridOpacity * 0.36)
+        return clipped ? gridOpacity * hiddenLayerOpacity() : gridOpacity
     }
 
     function isClipped(x, y, z) {
