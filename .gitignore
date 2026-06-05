@@ -1,0 +1,31 @@
+# Local toolchains and dependency caches
+.tools/
+
+# Build and deployment outputs
+build/
+out/
+
+# Qt/CMake/Visual Studio generated files
+.vs/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.qrc.depends
+
+# Binaries and runtime deployment artifacts
+*.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.obj
+
+# Logs and local runtime captures
+*.log
+*.out
+*.err
