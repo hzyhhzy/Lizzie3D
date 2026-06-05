@@ -17,6 +17,96 @@ Rectangle {
     border.color: "#b9c8d0"
     clip: true
 
+    component StraightSlider: Item {
+        id: control
+        property real from: 0
+        property real to: 1
+        property real value: from
+        property real stepSize: 0
+        readonly property real normalizedValue: to === from ? 0 : app.clamp((value - from) / (to - from), 0, 1)
+        readonly property real handleSize: 16
+        readonly property real trackInset: handleSize / 2
+        readonly property real trackHeight: 4
+        readonly property real trackWidth: Math.max(0, width - handleSize)
+        readonly property real trackY: Math.round((height - trackHeight) / 2)
+        signal moved(real value)
+
+        implicitHeight: 26
+        activeFocusOnTab: true
+
+        function snappedValue(rawValue) {
+            var low = Math.min(from, to)
+            var high = Math.max(from, to)
+            var nextValue = app.clamp(rawValue, low, high)
+            if (stepSize > 0)
+                nextValue = from + Math.round((nextValue - from) / stepSize) * stepSize
+            return app.clamp(nextValue, low, high)
+        }
+
+        function valueAt(mouseX) {
+            var ratio = trackWidth <= 0 ? 0 : app.clamp((mouseX - trackInset) / trackWidth, 0, 1)
+            return snappedValue(from + (to - from) * ratio)
+        }
+
+        Keys.onPressed: function(event) {
+            var delta = stepSize > 0 ? stepSize : (to - from) / 100
+            if (event.key === Qt.Key_Left || event.key === Qt.Key_Down) {
+                moved(snappedValue(value - delta))
+                event.accepted = true
+            } else if (event.key === Qt.Key_Right || event.key === Qt.Key_Up) {
+                moved(snappedValue(value + delta))
+                event.accepted = true
+            }
+        }
+
+        Rectangle {
+            x: control.trackInset
+            y: control.trackY
+            width: control.trackWidth
+            height: control.trackHeight
+            radius: 2
+            color: "#c9d4da"
+        }
+
+        Rectangle {
+            x: control.trackInset
+            y: control.trackY
+            width: Math.round(control.normalizedValue * control.trackWidth)
+            height: control.trackHeight
+            radius: 2
+            color: "#5f7079"
+        }
+
+        Rectangle {
+            x: Math.round(control.trackInset + control.normalizedValue * control.trackWidth - width / 2)
+            y: Math.round((control.height - height) / 2)
+            width: control.handleSize
+            height: control.handleSize
+            radius: width / 2
+            color: dragArea.pressed ? "#31434d" : "#f8fbfc"
+            border.color: dragArea.containsMouse || control.activeFocus || dragArea.pressed ? "#31434d" : "#7f929c"
+            border.width: 1
+        }
+
+        MouseArea {
+            id: dragArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onPressed: function(mouse) {
+                control.forceActiveFocus()
+                control.moved(control.valueAt(mouse.x))
+                mouse.accepted = true
+            }
+
+            onPositionChanged: function(mouse) {
+                if (pressed)
+                    control.moved(control.valueAt(mouse.x))
+            }
+        }
+    }
+
     Flickable {
         id: visualPanelFlick
         anchors.fill: parent
@@ -47,7 +137,7 @@ Rectangle {
         }
 
         Label {
-            text: app.trText("boardSize") + "  " + app.boardSize + "x" + app.boardSize + "x" + app.boardSize
+            text: app.trText("boardSize") + "  " + app.boardDimensionsText()
             color: "#2f414c"
             font.pixelSize: app.compactLayout ? 12 : 14
             Layout.fillWidth: true
@@ -56,15 +146,12 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
 
-            SpinBox {
-                from: app.minBoardSize
-                to: app.maxBoardSize
-                value: app.boardSize
-                editable: true
+            Button {
+                text: app.trText("menuBoardSize")
                 Layout.fillWidth: true
-                onValueModified: {
+                onClicked: {
                     app.focusBoardInput()
-                    app.setBoardSize(value)
+                    app.openBoardSizeDialog()
                 }
             }
 
@@ -73,7 +160,7 @@ Rectangle {
                 Layout.preferredWidth: app.compactLayout ? 56 : 62
                 onClicked: {
                     app.focusBoardInput()
-                    app.setBoardSize(app.defaultBoardSize)
+                    app.resetBoardSize()
                 }
             }
         }
@@ -88,13 +175,13 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
 
-            Slider {
+            StraightSlider {
                 from: app.minStoneScale
                 to: 1.00
                 value: app.stoneScale
                 stepSize: 0.01
                 Layout.fillWidth: true
-                onMoved: app.stoneScale = value
+                onMoved: function(nextValue) { app.stoneScale = nextValue }
             }
 
             Button {
@@ -178,13 +265,13 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
 
-            Slider {
+            StraightSlider {
                 from: 0
                 to: 100
                 value: app.gridOpacity * 100
                 stepSize: 1
                 Layout.fillWidth: true
-                onMoved: app.gridOpacity = value / 100
+                onMoved: function(nextValue) { app.gridOpacity = nextValue / 100 }
             }
 
             Button {
@@ -234,13 +321,13 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
 
-            Slider {
+            StraightSlider {
                 from: 0.2
                 to: 1.0
                 value: app.hiddenLayerTransparency
                 stepSize: 0.01
                 Layout.fillWidth: true
-                onMoved: app.hiddenLayerTransparency = value
+                onMoved: function(nextValue) { app.hiddenLayerTransparency = nextValue }
             }
 
             Button {

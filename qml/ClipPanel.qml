@@ -11,6 +11,13 @@ Rectangle {
     property alias clipCamera: clipCamera
     property alias clipAxisView: clipAxisView
     property string hoverClipAxis: ""
+    property real lastMouseX: 0
+    property real lastMouseY: 0
+    property bool dragMoved: false
+    readonly property real clipAxisLength: app.compactLayout ? 42 : 48
+    readonly property real clipHandleScale: app.compactLayout ? 0.30 : 0.34
+    readonly property real clipHandleWorldRadius: clipHandleScale * 50
+    readonly property real clipAxisRodLength: Math.max(0, (clipAxisLength - clipHandleWorldRadius - 4) * 2)
 
     anchors.right: branchPanelItem.left
     anchors.rightMargin: app.panelGap
@@ -23,6 +30,10 @@ Rectangle {
     color: "#f3f7f9"
     border.color: "#b9c8d0"
     clip: true
+
+    HoverHandler {
+        onHoveredChanged: app.setViewNavigationKeysBlocked(hovered)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -69,20 +80,9 @@ Rectangle {
 
                 PerspectiveCamera {
                     id: clipCamera
-                    fieldOfView: 38
+                    fieldOfView: 42
                     clipNear: 4
                     clipFar: 1000
-                }
-
-                DirectionalLight {
-                    eulerRotation.x: -34
-                    eulerRotation.y: 28
-                    brightness: 1.45
-                }
-
-                PointLight {
-                    position: Qt.vector3d(0, 120, 170)
-                    brightness: 28
                 }
 
                 Repeater3D {
@@ -93,7 +93,7 @@ Rectangle {
                     ]
 
                     delegate: Model {
-                        readonly property real axisLength: 68
+                        readonly property real axisLength: clipPanel.clipAxisLength
                         readonly property int dx: modelData.dx
                         readonly property int dy: modelData.dy
                         readonly property int dz: modelData.dz
@@ -102,13 +102,13 @@ Rectangle {
                         pickable: false
                         position: Qt.vector3d(0, 0, 0)
                         scale: dx !== 0
-                               ? Qt.vector3d(axisLength * 2 / 100, 0.03, 0.03)
+                               ? Qt.vector3d(clipPanel.clipAxisRodLength / 100, 0.03, 0.03)
                                : dy !== 0
-                                 ? Qt.vector3d(0.03, axisLength * 2 / 100, 0.03)
-                                 : Qt.vector3d(0.03, 0.03, axisLength * 2 / 100)
+                                 ? Qt.vector3d(0.03, clipPanel.clipAxisRodLength / 100, 0.03)
+                                 : Qt.vector3d(0.03, 0.03, clipPanel.clipAxisRodLength / 100)
                         materials: PrincipledMaterial {
+                            lighting: PrincipledMaterial.NoLighting
                             baseColor: modelData.color
-                            roughness: 0.42
                         }
                     }
                 }
@@ -117,7 +117,7 @@ Rectangle {
                     model: app.clipAxes
 
                     delegate: Model {
-                        readonly property real axisLength: 68
+                        readonly property real axisLength: clipPanel.clipAxisLength
                         readonly property bool clipHandle: true
                         readonly property string clipAxisName: modelData.axis
                         readonly property bool hovered: clipPanel.hoverClipAxis === modelData.axis
@@ -129,7 +129,9 @@ Rectangle {
                                               modelData.dy * axisLength,
                                               modelData.dz * axisLength)
                         rotation: app.axisBillboardRotation()
-                        scale: Qt.vector3d(0.44, 0.44, 0.44)
+                        scale: Qt.vector3d(clipPanel.clipHandleScale,
+                                           clipPanel.clipHandleScale,
+                                           clipPanel.clipHandleScale)
                         materials: PrincipledMaterial {
                             lighting: PrincipledMaterial.NoLighting
                             baseColor: "#ffffff"
@@ -195,14 +197,35 @@ Rectangle {
                 }
 
                 onPositionChanged: function(mouse) {
-                    clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
+                    if (mouse.buttons & Qt.LeftButton) {
+                        var dx = mouse.x - clipPanel.lastMouseX
+                        var dy = mouse.y - clipPanel.lastMouseY
+                        if (Math.abs(dx) + Math.abs(dy) > 2)
+                            clipPanel.dragMoved = true
+                        app.rotateCameraByMouseDelta(dx, dy)
+                        clipPanel.lastMouseX = mouse.x
+                        clipPanel.lastMouseY = mouse.y
+                    } else {
+                        clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
+                    }
+                    mouse.accepted = true
                 }
 
-                onExited: clipPanel.hoverClipAxis = ""
+                onExited: {
+                    clipPanel.hoverClipAxis = ""
+                }
 
-                onClicked: function(mouse) {
+                onPressed: function(mouse) {
+                    app.setViewNavigationKeysBlocked(true)
+                    clipPanel.lastMouseX = mouse.x
+                    clipPanel.lastMouseY = mouse.y
+                    clipPanel.dragMoved = false
                     clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
-                    app.focusBoardInput()
+                    mouse.accepted = true
+                }
+
+                onReleased: function(mouse) {
+                    clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
                     mouse.accepted = true
                 }
 
@@ -212,7 +235,7 @@ Rectangle {
                         clipPanel.hoverClipAxis = axis
                         app.adjustClip(axis, wheel.angleDelta.y > 0 ? 1 : -1)
                     }
-                    app.focusBoardInput()
+                    app.setViewNavigationKeysBlocked(true)
                     wheel.accepted = true
                 }
             }

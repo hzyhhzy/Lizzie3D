@@ -67,7 +67,7 @@ Rectangle {
                         font.pixelSize: app.compactLayout ? 11 : 12
                         validator: IntValidator {
                             bottom: 0
-                            top: app.boardSize * app.boardSize * app.boardSize
+                            top: app.boardPointCount()
                         }
                         function commitMoveNumber() {
                             if (committingMoveNumber)

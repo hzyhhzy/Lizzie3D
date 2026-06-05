@@ -7,6 +7,9 @@ Rectangle {
     required property var app
     property alias axisCamera: axisCamera
     property alias axisView: axisView
+    property real lastMouseX: 0
+    property real lastMouseY: 0
+    property bool dragMoved: false
     anchors.left: parent.left
     anchors.top: parent.top
     anchors.leftMargin: app.panelMargin + app.infoPanelWidth + app.panelGap
@@ -17,6 +20,10 @@ Rectangle {
     color: "#eef4f7"
     opacity: 0.92
     border.color: "#b8c7cf"
+
+    HoverHandler {
+        onHoveredChanged: app.setViewNavigationKeysBlocked(hovered)
+    }
 
     View3D {
         id: axisView
@@ -34,12 +41,6 @@ Rectangle {
             id: axisCamera
             clipNear: 4
             clipFar: 1000
-        }
-
-        DirectionalLight {
-            eulerRotation.x: -35
-            eulerRotation.y: 30
-            brightness: 1.6
         }
 
         Repeater3D {
@@ -69,8 +70,8 @@ Rectangle {
                          ? Qt.vector3d(0.026, axisLength / 100, 0.026)
                          : Qt.vector3d(0.026, 0.026, axisLength / 100)
                 materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
                     baseColor: modelData.color
-                    roughness: 0.45
                 }
             }
         }
@@ -97,8 +98,8 @@ Rectangle {
                                       modelData.dz * axisLength)
                 scale: Qt.vector3d(0.36, 0.36, 0.36)
                 materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
                     baseColor: modelData.color
-                    roughness: 0.22
                 }
             }
         }
@@ -132,8 +133,34 @@ Rectangle {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton
 
-        onClicked: function(mouse) {
-            app.focusBoardInput()
+        onPressed: function(mouse) {
+            app.setViewNavigationKeysBlocked(true)
+            axisGizmoPanel.lastMouseX = mouse.x
+            axisGizmoPanel.lastMouseY = mouse.y
+            axisGizmoPanel.dragMoved = false
+            mouse.accepted = true
+        }
+
+        onPositionChanged: function(mouse) {
+            if (!(mouse.buttons & Qt.LeftButton))
+                return
+
+            var dx = mouse.x - axisGizmoPanel.lastMouseX
+            var dy = mouse.y - axisGizmoPanel.lastMouseY
+            if (Math.abs(dx) + Math.abs(dy) > 2)
+                axisGizmoPanel.dragMoved = true
+            app.rotateCameraByMouseDelta(dx, dy)
+            axisGizmoPanel.lastMouseX = mouse.x
+            axisGizmoPanel.lastMouseY = mouse.y
+            mouse.accepted = true
+        }
+
+        onReleased: function(mouse) {
+            if (axisGizmoPanel.dragMoved) {
+                mouse.accepted = true
+                return
+            }
+
             var result = axisView.pick(mouse.x - axisView.x, mouse.y - axisView.y)
             var hit = result.objectHit
             if (hit && hit.axisHandle)

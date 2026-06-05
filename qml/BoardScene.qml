@@ -91,7 +91,7 @@ View3D {
 
             delegate: Model {
                 readonly property vector3d origin: app.mainAxisOrigin()
-                readonly property real axisLength: app.mainAxisLength()
+                readonly property real axisLength: app.mainAxisLength(modelData.axis)
                 readonly property int dx: modelData.dx
                 readonly property int dy: modelData.dy
                 readonly property int dz: modelData.dz
@@ -122,7 +122,7 @@ View3D {
 
             delegate: Model {
                 readonly property vector3d origin: app.mainAxisOrigin()
-                readonly property real axisLength: app.mainAxisLength()
+                readonly property real axisLength: app.mainAxisLength(modelData.axis)
 
                 source: "#Sphere"
                 pickable: false

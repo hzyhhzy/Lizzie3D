@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 
 Rectangle {
@@ -15,6 +16,28 @@ Rectangle {
     radius: 8
     color: "#f3f7f9"
     border.color: "#b9c8d0"
+
+    component StraightScrollBar: Basic.ScrollBar {
+        id: scrollBar
+        padding: 1
+        minimumSize: 0.08
+        implicitWidth: 10
+        implicitHeight: 10
+
+        background: Rectangle {
+            color: "#eef4f7"
+            radius: 0
+            antialiasing: false
+        }
+
+        contentItem: Rectangle {
+            implicitWidth: scrollBar.orientation === Qt.Horizontal ? 34 : 8
+            implicitHeight: scrollBar.orientation === Qt.Horizontal ? 8 : 34
+            radius: 0
+            antialiasing: false
+            color: scrollBar.pressed ? "#4e616b" : scrollBar.hovered ? "#6a7c85" : "#7d8b92"
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -55,11 +78,11 @@ Rectangle {
                 contentHeight: Math.max(height, app.treeCanvasHeight)
                 boundsBehavior: Flickable.StopAtBounds
 
-                ScrollBar.horizontal: ScrollBar {
+                ScrollBar.horizontal: StraightScrollBar {
                     policy: ScrollBar.AsNeeded
                 }
 
-                ScrollBar.vertical: ScrollBar {
+                ScrollBar.vertical: StraightScrollBar {
                     policy: ScrollBar.AsNeeded
                 }
 

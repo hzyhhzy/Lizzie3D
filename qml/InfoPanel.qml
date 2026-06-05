@@ -37,7 +37,7 @@ Rectangle {
         }
 
         Label {
-            text: app.trText("stones") + ": " + app.stoneCount + " / " + (app.boardSize * app.boardSize * app.boardSize)
+            text: app.trText("stones") + ": " + app.stoneCount + " / " + app.boardPointCount()
             color: "#33424d"
             font.pixelSize: 14
             Layout.fillWidth: true

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick3D
@@ -83,7 +84,6 @@ ApplicationWindow {
             "boardSizeX": "长",
             "boardSizeY": "宽",
             "boardSizeZ": "高",
-            "boardSizeCubicOnly": "当前版本只支持长宽高相同的棋盘。",
             "moveNumberDisplay": "手数显示",
             "moveNumberAll": "全部手数",
             "moveNumberLastOnly": "仅最后一手",
@@ -170,7 +170,6 @@ ApplicationWindow {
             "boardSizeX": "Length",
             "boardSizeY": "Width",
             "boardSizeZ": "Height",
-            "boardSizeCubicOnly": "This version only supports equal length, width, and height.",
             "moveNumberDisplay": "Move labels",
             "moveNumberAll": "All move numbers",
             "moveNumberLastOnly": "Last move only",
@@ -195,6 +194,33 @@ ApplicationWindow {
     property bool gameDirty: false
     property bool suppressUnsavedPrompt: false
     property bool saveDialogClosesApp: false
+    property bool viewNavigationKeysBlocked: false
+
+    component SavePromptButton: Basic.Button {
+        id: savePromptButton
+        property bool primary: false
+        implicitWidth: 104
+        implicitHeight: 34
+        padding: 0
+
+        contentItem: Text {
+            text: savePromptButton.text
+            color: savePromptButton.primary ? "#ffffff" : "#22333d"
+            font.pixelSize: 13
+            font.bold: savePromptButton.primary
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+
+        background: Rectangle {
+            radius: 6
+            color: savePromptButton.primary
+                   ? (savePromptButton.pressed ? "#1d6fa8" : savePromptButton.hovered ? "#2c8dcc" : "#267fbb")
+                   : (savePromptButton.pressed ? "#d5e1e8" : savePromptButton.hovered ? "#edf4f8" : "#f8fbfd")
+            border.color: savePromptButton.primary ? "#1d6fa8" : "#9fb2bd"
+            border.width: 1
+        }
+    }
 
     onClosing: function(event) {
         if (gameDirty && !suppressUnsavedPrompt) {
@@ -361,40 +387,86 @@ ApplicationWindow {
         onRejected: focusBoardInput()
     }
 
-    Dialog {
+    Basic.Dialog {
         id: unsavedSgfDialog
         modal: true
         title: root.trText("unsavedGameTitle")
         closePolicy: Popup.CloseOnEscape
-        width: Math.min(420, root.width - 80)
+        padding: 18
+        width: Math.min(460, root.width - 80)
         x: Math.round((root.width - width) / 2)
         y: Math.round((root.height - height) / 2)
 
-        ColumnLayout {
-            width: parent.width
-            spacing: 14
+        background: Rectangle {
+            radius: 10
+            color: "#f8fbfd"
+            border.color: "#8ea5b1"
+            border.width: 1
+        }
+
+        header: Rectangle {
+            height: 52
+            color: "#e6eff4"
+            radius: 10
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: parent.radius
+                color: parent.color
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: "#c5d4dc"
+            }
+
+            Label {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 18
+                anchors.rightMargin: 18
+                text: unsavedSgfDialog.title
+                color: "#14242e"
+                font.pixelSize: 17
+                font.bold: true
+                elide: Text.ElideRight
+            }
+        }
+
+        contentItem: ColumnLayout {
+            implicitWidth: 424
+            spacing: 18
 
             Label {
                 text: root.trText("confirmSaveGame")
                 color: "#17212a"
                 wrapMode: Text.WordWrap
+                font.pixelSize: 14
                 Layout.fillWidth: true
             }
 
             RowLayout {
                 Layout.fillWidth: true
+                spacing: 10
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                SavePromptButton {
                     text: root.trText("save")
+                    primary: true
                     onClicked: {
                         unsavedSgfDialog.close()
                         root.openSaveSgfDialog(true)
                     }
                 }
 
-                Button {
+                SavePromptButton {
                     text: root.trText("dontSave")
                     onClicked: {
                         unsavedSgfDialog.close()
@@ -402,7 +474,7 @@ ApplicationWindow {
                     }
                 }
 
-                Button {
+                SavePromptButton {
                     text: root.trText("cancel")
                     onClicked: {
                         unsavedSgfDialog.close()
@@ -426,11 +498,14 @@ ApplicationWindow {
         property string errorText: ""
 
         function showForCurrentBoard() {
-            var current = root.boardSize
-            selectedPreset = (current === 5 || current === 7 || current === 9) ? current : 0
-            sizeXSpin.value = current
-            sizeYSpin.value = current
-            sizeZSpin.value = current
+            selectedPreset = (root.boardSizeX === root.boardSizeY
+                              && root.boardSizeX === root.boardSizeZ
+                              && (root.boardSizeX === 5 || root.boardSizeX === 7 || root.boardSizeX === 9))
+                             ? root.boardSizeX
+                             : 0
+            sizeXSpin.value = root.boardSizeX
+            sizeYSpin.value = root.boardSizeY
+            sizeZSpin.value = root.boardSizeZ
             errorText = ""
             open()
         }
@@ -447,14 +522,9 @@ ApplicationWindow {
             var xSize = sizeXSpin.value
             var ySize = sizeYSpin.value
             var zSize = sizeZSpin.value
-            if (xSize !== ySize || xSize !== zSize) {
-                selectedPreset = 0
-                errorText = root.trText("boardSizeCubicOnly")
-                return
-            }
 
             close()
-            root.setBoardSize(xSize)
+            root.setBoardDimensions(xSize, ySize, zSize)
             focusBoardInput()
         }
 
@@ -581,9 +651,18 @@ ApplicationWindow {
     readonly property int minBoardSize: 1
     readonly property int maxBoardSize: 19
     readonly property int defaultBoardSize: 7
-    property int boardSize: defaultBoardSize
+    readonly property int defaultBoardSizeX: defaultBoardSize
+    readonly property int defaultBoardSizeY: defaultBoardSize
+    readonly property int defaultBoardSizeZ: defaultBoardSize
+    property int boardSizeX: defaultBoardSizeX
+    property int boardSizeY: defaultBoardSizeY
+    property int boardSizeZ: defaultBoardSizeZ
+    readonly property int boardSize: Math.max(boardSizeX, boardSizeY, boardSizeZ)
     property real spacing: 100
-    property real extent: (boardSize - 1) * spacing
+    property real extentX: (boardSizeX - 1) * spacing
+    property real extentY: (boardSizeY - 1) * spacing
+    property real extentZ: (boardSizeZ - 1) * spacing
+    property real extent: Math.max(extentX, extentY, extentZ)
     property real halfExtent: extent / 2
     readonly property bool compactLayout: width < 1500 || height < 820
     readonly property real commandToolbarHeight: compactLayout ? 34 : 38
@@ -653,6 +732,8 @@ ApplicationWindow {
     property real cameraPitch: 28
     property real cameraDistance: 560
     property vector3d cameraTarget: Qt.vector3d(0, 0, 0)
+    property int axisCameraRevision: 0
+    property bool axisCameraRefreshPending: false
     readonly property real quick3DPrimitiveDiameter: 100
     readonly property real gridPointSphereScale: 0.25
     readonly property real defaultStoneModelScale: 0.70
@@ -693,6 +774,9 @@ ApplicationWindow {
         { "axis": "-Z", "label": "-z", "dx": 0, "dy": 0, "dz": -1, "color": "#3d73d8" }
     ]
 
+    onCameraYawChanged: scheduleAxisCameraRefresh()
+    onCameraPitchChanged: scheduleAxisCameraRefresh()
+
     function clamp(value, low, high) {
         return Math.max(low, Math.min(high, value))
     }
@@ -700,6 +784,21 @@ ApplicationWindow {
     function focusBoardInput() {
         if (inputLayer)
             inputLayer.forceActiveFocus()
+    }
+
+    function setViewNavigationKeysBlocked(blocked) {
+        viewNavigationKeysBlocked = blocked
+        if (blocked && inputLayer)
+            inputLayer.clearHeldNavigationKeys()
+    }
+
+    function isViewNavigationKey(key) {
+        return key === Qt.Key_W || key === Qt.Key_A || key === Qt.Key_S || key === Qt.Key_D
+               || key === Qt.Key_Q || key === Qt.Key_E
+               || key === Qt.Key_R || key === Qt.Key_F
+               || key === Qt.Key_Left || key === Qt.Key_Right
+               || key === Qt.Key_X || key === Qt.Key_Z
+               || key === Qt.Key_Space
     }
 
     function requestQuit() {
@@ -739,7 +838,7 @@ ApplicationWindow {
     }
 
     function windowTitleText() {
-        return trText("windowTitle") + " " + boardSize + "x" + boardSize + "x" + boardSize
+        return trText("windowTitle") + " " + boardDimensionsText()
     }
 
     function keyFor(x, y, z) {
@@ -747,8 +846,18 @@ ApplicationWindow {
     }
 
     function pointPosition(x, y, z) {
-        var center = (boardSize - 1) / 2
-        return Qt.vector3d((x - center) * spacing, (y - center) * spacing, (z - center) * spacing)
+        var centerX = (boardSizeX - 1) / 2
+        var centerY = (boardSizeY - 1) / 2
+        var centerZ = (boardSizeZ - 1) / 2
+        return Qt.vector3d((x - centerX) * spacing, (y - centerY) * spacing, (z - centerZ) * spacing)
+    }
+
+    function boardDimensionsText() {
+        return boardSizeX + "x" + boardSizeY + "x" + boardSizeZ
+    }
+
+    function boardPointCount() {
+        return boardSizeX * boardSizeY * boardSizeZ
     }
 
     function hiddenLayerOpacity() {
@@ -771,12 +880,16 @@ ApplicationWindow {
         mainAxisLabels = buildMainAxisLabels()
     }
 
-    function setBoardSize(size, markDirty) {
-        var nextSize = Math.round(clamp(size, minBoardSize, maxBoardSize))
-        if (nextSize === boardSize)
+    function setBoardDimensions(xSize, ySize, zSize, markDirty) {
+        var nextX = Math.round(clamp(xSize, minBoardSize, maxBoardSize))
+        var nextY = Math.round(clamp(ySize, minBoardSize, maxBoardSize))
+        var nextZ = Math.round(clamp(zSize, minBoardSize, maxBoardSize))
+        if (nextX === boardSizeX && nextY === boardSizeY && nextZ === boardSizeZ)
             return
 
-        boardSize = nextSize
+        boardSizeX = nextX
+        boardSizeY = nextY
+        boardSizeZ = nextZ
         resetClipCounts()
         clearHover()
         resetGameTree()
@@ -784,6 +897,22 @@ ApplicationWindow {
         resetCamera()
         if (markDirty !== false)
             gameDirty = true
+    }
+
+    function setBoardSize(size, markDirty) {
+        setBoardDimensions(size, size, size, markDirty)
+    }
+
+    function resetBoardSize() {
+        setBoardDimensions(defaultBoardSizeX, defaultBoardSizeY, defaultBoardSizeZ)
+    }
+
+    function boardSizeForAxis(axis) {
+        if (axis === 0 || axis === "X" || axis === "+X" || axis === "-X")
+            return boardSizeX
+        if (axis === 1 || axis === "Y" || axis === "+Y" || axis === "-Y")
+            return boardSizeY
+        return boardSizeZ
     }
 
     function hasActiveClip() {
@@ -832,11 +961,20 @@ ApplicationWindow {
         return clipped ? baseOpacity * hiddenLayerOpacity() : baseOpacity
     }
 
+    function gridFixed1Count(axis) {
+        return axis === 0 ? boardSizeY : boardSizeX
+    }
+
+    function gridFixed2Count(axis) {
+        return axis === 2 ? boardSizeY : boardSizeZ
+    }
+
     function gridLinePositions(axis) {
         var data = []
-        for (var fixed1 = 0; fixed1 < boardSize; ++fixed1) {
-            for (var fixed2 = 0; fixed2 < boardSize; ++fixed2) {
-                for (var i = 0; i < boardSize - 1; ++i)
+        var axisSize = boardSizeForAxis(axis)
+        for (var fixed1 = 0; fixed1 < gridFixed1Count(axis); ++fixed1) {
+            for (var fixed2 = 0; fixed2 < gridFixed2Count(axis); ++fixed2) {
+                for (var i = 0; i < axisSize - 1; ++i)
                     appendGridLineSegment(data, axis, i, i + 1, fixed1, fixed2)
             }
         }
@@ -846,9 +984,10 @@ ApplicationWindow {
     function gridLineColors(axis) {
         var data = []
         var rgb = gridLineRgb(axis)
-        for (var fixed1 = 0; fixed1 < boardSize; ++fixed1) {
-            for (var fixed2 = 0; fixed2 < boardSize; ++fixed2) {
-                for (var i = 0; i < boardSize - 1; ++i)
+        var axisSize = boardSizeForAxis(axis)
+        for (var fixed1 = 0; fixed1 < gridFixed1Count(axis); ++fixed1) {
+            for (var fixed2 = 0; fixed2 < gridFixed2Count(axis); ++fixed2) {
+                for (var i = 0; i < axisSize - 1; ++i)
                     appendGridLineColor(data, rgb, gridLineSegmentOpacity(axis, i, i + 1, fixed1, fixed2, false))
             }
         }
@@ -883,7 +1022,7 @@ ApplicationWindow {
         for (var axis = 0; axis < 3; ++axis) {
             var fixed1 = axis === 0 ? hoverY : hoverX
             var fixed2 = axis === 2 ? hoverY : hoverZ
-            for (var i = 0; i < boardSize - 1; ++i)
+            for (var i = 0; i < boardSizeForAxis(axis) - 1; ++i)
                 appendHoverGridRod(data, axis, i, i + 1, fixed1, fixed2)
         }
         return data
@@ -899,9 +1038,9 @@ ApplicationWindow {
 
     function isClipped(x, y, z) {
         clipRevision
-        return x < clipNegX || x >= boardSize - clipPosX
-               || y < clipNegY || y >= boardSize - clipPosY
-               || z < clipNegZ || z >= boardSize - clipPosZ
+        return x < clipNegX || x >= boardSizeX - clipPosX
+               || y < clipNegY || y >= boardSizeY - clipPosY
+               || z < clipNegZ || z >= boardSizeZ - clipPosZ
     }
 
     function clipCount(axisName) {
@@ -922,7 +1061,7 @@ ApplicationWindow {
     }
 
     function setClipCount(axisName, value) {
-        var count = clamp(value, 0, boardSize)
+        var count = clamp(value, 0, boardSizeForAxis(axisName))
         if (axisName === "+X")
             clipPosX = count
         else if (axisName === "-X")
@@ -972,9 +1111,9 @@ ApplicationWindow {
 
     function buildPoints() {
         var data = []
-        for (var y = 0; y < boardSize; ++y) {
-            for (var z = 0; z < boardSize; ++z) {
-                for (var x = 0; x < boardSize; ++x) {
+        for (var y = 0; y < boardSizeY; ++y) {
+            for (var z = 0; z < boardSizeZ; ++z) {
+                for (var x = 0; x < boardSizeX; ++x) {
                     data.push({
                         "x": x,
                         "y": y,
@@ -1234,7 +1373,7 @@ ApplicationWindow {
     }
 
     function gotoMoveNumber(value) {
-        var target = Math.round(clamp(isNaN(value) ? 0 : value, 0, boardSize * boardSize * boardSize))
+        var target = Math.round(clamp(isNaN(value) ? 0 : value, 0, boardPointCount()))
         var node = currentNode() || nodeById(0)
         if (!node)
             return
@@ -1500,6 +1639,9 @@ ApplicationWindow {
     }
 
     function axisBillboardRotation() {
+        axisCameraRevision
+        cameraYaw
+        cameraPitch
         return quaternionFromBasis(cameraRightVector(), cameraUpVector(), cameraBackVector())
     }
 
@@ -1593,7 +1735,7 @@ ApplicationWindow {
     function buildSgf() {
         var description = "Lizzie3D 3D Gomoku. Coordinates use SGF letters: aaa = (0,0,0), cde = (2,3,4)."
         var text = "(;FF[4]GM[4]CA[UTF-8]AP[Lizzie3D]SZ["
-                   + boardSize + ":" + boardSize + ":" + boardSize + "]"
+                   + boardSizeX + ":" + boardSizeY + ":" + boardSizeZ + "]"
                    + "C[" + sgfEscape(description) + "]"
         var rootNode = nodeById(0)
         var children = rootNode ? (rootNode.children || []) : []
@@ -1608,7 +1750,7 @@ ApplicationWindow {
 
     function openSaveSgfDialog(closeAfterSave) {
         saveDialogClosesApp = closeAfterSave === true
-        saveSgfDialog.currentFile = "lizzie3d-" + boardSize + "x" + boardSize + "x" + boardSize + ".sgf"
+        saveSgfDialog.currentFile = "lizzie3d-" + boardDimensionsText() + ".sgf"
         saveSgfDialog.open()
     }
 
@@ -1640,26 +1782,30 @@ ApplicationWindow {
     function parseSgfBoardSize(value) {
         var parts = String(value).split(":")
         if (parts.length !== 1 && parts.length !== 3)
-            return -1
+            return { "ok": false }
 
-        var size = -1
+        var sizes = []
         for (var i = 0; i < parts.length; ++i) {
             var part = parseInt(parts[i], 10)
             if (isNaN(part))
-                return -1
-            if (size < 0)
-                size = part
-            else if (part !== size)
-                return -1
+                return { "ok": false }
+            sizes.push(part)
         }
-        return size
+
+        if (parts.length === 1)
+            return { "ok": true, "x": sizes[0], "y": sizes[0], "z": sizes[0] }
+        return { "ok": true, "x": sizes[0], "y": sizes[1], "z": sizes[2] }
     }
 
     function parseSgf(text) {
         var sgf = String(text)
         var pos = 0
-        var parsedBoardSize = minBoardSize
-        var maxCoordinate = 0
+        var parsedBoardSizeX = minBoardSize
+        var parsedBoardSizeY = minBoardSize
+        var parsedBoardSizeZ = minBoardSize
+        var maxX = -1
+        var maxY = -1
+        var maxZ = -1
         var parseError = ""
         var nodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
                        "key": "", "player": 0, "moveNumber": 0 }]
@@ -1752,11 +1898,15 @@ ApplicationWindow {
                 return
 
             var size = parseSgfBoardSize(sizeValue)
-            if (size < minBoardSize || size > maxBoardSize) {
+            if (!size.ok || size.x < minBoardSize || size.x > maxBoardSize
+                    || size.y < minBoardSize || size.y > maxBoardSize
+                    || size.z < minBoardSize || size.z > maxBoardSize) {
                 fail("Unsupported board size: " + sizeValue + ".")
                 return
             }
-            parsedBoardSize = size
+            parsedBoardSizeX = size.x
+            parsedBoardSizeY = size.y
+            parsedBoardSizeZ = size.z
         }
 
         function moveFromProperties(properties) {
@@ -1789,7 +1939,9 @@ ApplicationWindow {
                 return null
             }
 
-            maxCoordinate = Math.max(maxCoordinate, x, y, z)
+            maxX = Math.max(maxX, x)
+            maxY = Math.max(maxY, y)
+            maxZ = Math.max(maxZ, z)
             return { "x": x, "y": y, "z": z, "player": player }
         }
 
@@ -1858,15 +2010,20 @@ ApplicationWindow {
         if (parseError !== "")
             return { "ok": false, "error": parseError }
 
-        var targetBoardSize = Math.max(parsedBoardSize, maxCoordinate + 1)
-        if (targetBoardSize < minBoardSize || targetBoardSize > maxBoardSize)
+        var targetBoardSizeX = Math.max(parsedBoardSizeX, maxX + 1)
+        var targetBoardSizeY = Math.max(parsedBoardSizeY, maxY + 1)
+        var targetBoardSizeZ = Math.max(parsedBoardSizeZ, maxZ + 1)
+        if (targetBoardSizeX < minBoardSize || targetBoardSizeX > maxBoardSize
+                || targetBoardSizeY < minBoardSize || targetBoardSizeY > maxBoardSize
+                || targetBoardSizeZ < minBoardSize || targetBoardSizeZ > maxBoardSize)
             return { "ok": false, "error": "Unsupported board size." }
 
-        return { "ok": true, "nodes": nodes, "nextNodeId": nextId, "boardSize": targetBoardSize }
+        return { "ok": true, "nodes": nodes, "nextNodeId": nextId,
+                 "boardSizeX": targetBoardSizeX, "boardSizeY": targetBoardSizeY, "boardSizeZ": targetBoardSizeZ }
     }
 
     function applyParsedSgf(parsed, url) {
-        setBoardSize(parsed.boardSize, false)
+        setBoardDimensions(parsed.boardSizeX, parsed.boardSizeY, parsed.boardSizeZ, false)
         resetClipCounts()
         clearHover()
 
@@ -1906,22 +2063,24 @@ ApplicationWindow {
         return pointPosition(-1, -1, -1)
     }
 
-    function mainAxisLength() {
-        return spacing * (boardSize + 1.15)
+    function mainAxisLength(axis) {
+        return spacing * (boardSizeForAxis(axis) + 1.15)
     }
 
     function buildMainAxisLabels() {
         var labels = []
-        for (var i = 0; i < boardSize; ++i) {
+        for (var i = 0; i < boardSizeX; ++i)
             labels.push({ "label": xCoordinateText(i), "x": i, "y": -1.34, "z": -1, "color": "#d84a43", "size": 0.48, "fontSize": 144 })
-            labels.push({ "label": yCoordinateText(i), "x": -1.34, "y": i, "z": -1, "color": "#39a66a", "size": 0.48, "fontSize": 144 })
-            labels.push({ "label": zCoordinateText(i), "x": -1.34, "y": -1, "z": i, "color": "#3d73d8", "size": 0.48, "fontSize": 144 })
-        }
 
-        var axisEnd = boardSize + 0.42
-        labels.push({ "label": "X", "x": axisEnd, "y": -1, "z": -1, "color": "#d84a43", "size": 0.68, "fontSize": 164 })
-        labels.push({ "label": "Y", "x": -1, "y": axisEnd, "z": -1, "color": "#39a66a", "size": 0.68, "fontSize": 164 })
-        labels.push({ "label": "Z", "x": -1, "y": -1, "z": axisEnd, "color": "#3d73d8", "size": 0.68, "fontSize": 164 })
+        for (var j = 0; j < boardSizeY; ++j)
+            labels.push({ "label": yCoordinateText(j), "x": -1.34, "y": j, "z": -1, "color": "#39a66a", "size": 0.48, "fontSize": 144 })
+
+        for (var k = 0; k < boardSizeZ; ++k)
+            labels.push({ "label": zCoordinateText(k), "x": -1.34, "y": -1, "z": k, "color": "#3d73d8", "size": 0.48, "fontSize": 144 })
+
+        labels.push({ "label": "X", "x": boardSizeX + 0.42, "y": -1, "z": -1, "color": "#d84a43", "size": 0.68, "fontSize": 164 })
+        labels.push({ "label": "Y", "x": -1, "y": boardSizeY + 0.42, "z": -1, "color": "#39a66a", "size": 0.68, "fontSize": 164 })
+        labels.push({ "label": "Z", "x": -1, "y": -1, "z": boardSizeZ + 0.42, "color": "#3d73d8", "size": 0.68, "fontSize": 164 })
         return labels
     }
 
@@ -2048,6 +2207,7 @@ ApplicationWindow {
     }
 
     function axisGizmoLabelPoint(dx, dy, dz) {
+        axisCameraRevision
         cameraYaw
         cameraPitch
         axisGizmo.axisView.width
@@ -2086,6 +2246,13 @@ ApplicationWindow {
             cameraTarget.z + cameraDistance * Math.cos(yaw) * cp)
         boardScene.sceneCamera.lookAt(cameraTarget)
         refreshAxisCamera()
+        scheduleAxisCameraRefresh()
+    }
+
+    function rotateCameraByMouseDelta(deltaX, deltaY) {
+        cameraYaw -= deltaX * 0.32
+        cameraPitch = clamp(cameraPitch + deltaY * 0.22, -62, 78)
+        refreshCamera()
     }
 
     function refreshSmallAxisCamera(camera, distance) {
@@ -2103,8 +2270,22 @@ ApplicationWindow {
     }
 
     function refreshAxisCamera() {
+        if (!axisGizmo || !clipPanel)
+            return
         refreshSmallAxisCamera(axisGizmo.axisCamera, 320)
-        refreshSmallAxisCamera(clipPanel.clipCamera, 230)
+        refreshSmallAxisCamera(clipPanel.clipCamera, 260)
+        axisCameraRevision += 1
+    }
+
+    function scheduleAxisCameraRefresh() {
+        if (axisCameraRefreshPending)
+            return
+
+        axisCameraRefreshPending = true
+        Qt.callLater(function() {
+            axisCameraRefreshPending = false
+            refreshAxisCamera()
+        })
     }
 
     function defaultCameraDistance() {

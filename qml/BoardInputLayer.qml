@@ -68,6 +68,12 @@ Item {
         if (event.modifiers & Qt.ControlModifier)
             return
 
+        if (app.viewNavigationKeysBlocked && app.isViewNavigationKey(event.key)) {
+            inputLayer.clearHeldNavigationKeys()
+            event.accepted = true
+            return
+        }
+
         if (event.key === Qt.Key_W) {
             inputLayer.upHeld = true
             event.accepted = true
@@ -120,8 +126,11 @@ Item {
     }
 
     Keys.onReleased: function(event) {
-        if (event.modifiers & Qt.ControlModifier)
+        if (app.viewNavigationKeysBlocked && app.isViewNavigationKey(event.key)) {
+            inputLayer.clearHeldNavigationKeys()
+            event.accepted = true
             return
+        }
 
         if (event.key === Qt.Key_W) {
             inputLayer.upHeld = false
@@ -192,9 +201,7 @@ Item {
             if (mouse.buttons & Qt.LeftButton) {
                 if (Math.abs(dx) + Math.abs(dy) > 2)
                     inputLayer.moved = true
-                app.cameraYaw -= dx * 0.32
-                app.cameraPitch = app.clamp(app.cameraPitch + dy * 0.22, -62, 78)
-                app.refreshCamera()
+                app.rotateCameraByMouseDelta(dx, dy)
             } else if ((mouse.buttons & Qt.RightButton) || (mouse.buttons & Qt.MiddleButton)) {
                 if (Math.abs(dx) + Math.abs(dy) > 2)
                     inputLayer.moved = true

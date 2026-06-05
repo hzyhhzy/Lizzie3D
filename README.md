@@ -1,23 +1,25 @@
 # Lizzie3D
 
+# [中文版](README.zh-CN.md)
+
 Lizzie3D is an experimental Qt 6 desktop interface for 3D gomoku analysis. It focuses on a clear, navigable 3D board, branch-tree review, clipping tools, and future integration with external AI engines.
 
 The project is still early. It can display and edit a 3D move tree, but it does not yet connect to an AI engine and does not implement win/loss rule adjudication.
 
-[中文版](README.zh-CN.md)
+![Lizzie3D main window](docs/images/lizzie3d-main-window.png)
 
 ## Features
 
 - 3D board rendered with Qt Quick 3D.
-- Configurable cubic board size from 1x1x1 to 19x19x19.
+- Configurable cuboid board dimensions from 1x1x1 to 19x19x19.
 - Perspective camera with keyboard and mouse navigation.
 - Camera-relative movement with `W/A/S/D` and `Q/E`.
-- Layer clipping from six directions, with both panel controls and keyboard shortcuts.
-- Axis gizmo for aligning the camera.
+- Layer clipping from six directions, with a rotatable six-axis clip control and keyboard shortcuts.
+- Axis gizmo for aligning the camera; dragging inside either axis panel rotates the camera.
 - Coordinate labels using `Aa1`-style 3D coordinates.
 - Move placement, deletion, branch navigation, and main-branch selection.
 - Lizzie-style branch tree panel.
-- SGF export for the current game tree.
+- SGF import and export for the current game tree, including `SZ[x:y:z]` board dimensions.
 - Stone move-number display modes.
 - Chinese and English UI, with Chinese as the default language.
 - Rendering optimizations for larger boards, including line meshes and math-based picking.
@@ -28,7 +30,7 @@ Implemented:
 
 - 3D board interaction.
 - Local game-tree editing.
-- Basic SGF saving.
+- Basic SGF loading and saving.
 - Bilingual UI text.
 - Visual settings for stones, grid, clipping, lighting, and move numbers.
 
@@ -89,10 +91,15 @@ C:\Qt\6.10.3\msvc2022_64\bin\windeployqt.exe --qmldir qml build\lizzie3d\Release
 - `X/Z`: decrease/increase the clipping layers for the currently facing axis.
 - Arrow left/right: rotate the camera horizontally.
 - `Space`: reset the camera.
+- `Ctrl+O`: open an SGF file.
+- `Ctrl+S`: save the current game tree as SGF.
+- `Ctrl+I`: set board dimensions.
 - `Backspace`: delete the current node.
 - `M`: cycle move-number display modes.
-- Mouse drag: rotate/pan the view depending on the active interaction.
-- Mouse wheel: zoom.
+- Left-drag on the board or either six-axis panel: rotate the camera.
+- Right-drag or middle-drag on the board: pan the camera target.
+- Mouse wheel on the board: zoom.
+- Mouse wheel over a clip-axis circle: adjust that clip direction.
 
 ## Repository Layout
 
@@ -121,4 +128,4 @@ Local toolchains, build outputs, logs, and deployed binaries are ignored by Git.
 
 ## License
 
-No license has been selected yet.
+Lizzie3D is licensed under the GNU General Public License version 3 only (`GPL-3.0-only`). See [LICENSE](LICENSE).
