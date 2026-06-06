@@ -128,21 +128,34 @@ Rectangle {
 
                         for (var i = 0; i < app.treeNodes.length; ++i) {
                             var node = app.treeNodes[i]
-                            ctx.beginPath()
-                            ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2)
-                            if (node.player === 1) {
-                                ctx.fillStyle = "#101418"
-                            } else if (node.player === 2) {
-                                ctx.fillStyle = "#fff8e8"
-                            } else {
-                                ctx.fillStyle = "#d9e3e9"
-                            }
-                            ctx.fill()
-                            ctx.lineWidth = node.current ? 3 : 1.5
-                            ctx.strokeStyle = node.current ? "#2b83c6" : (node.player === 2 ? "#65747d" : "#41515a")
-                            ctx.stroke()
 
-                            ctx.fillStyle = node.player === 1 ? "#f7fbfd" : "#1a252d"
+                            if (node.moveNumber === 0) {
+                                var side = node.radius * 1.72
+                                ctx.beginPath()
+                                ctx.rect(node.x - side / 2, node.y - side / 2, side, side)
+                                ctx.fillStyle = "#2b83c6"
+                                ctx.fill()
+                                ctx.lineWidth = node.current ? 3 : 1.5
+                                ctx.strokeStyle = node.current ? "#0f4f83" : "#1d6fa8"
+                                ctx.stroke()
+                                ctx.fillStyle = "#ffffff"
+                            } else {
+                                ctx.beginPath()
+                                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2)
+                                if (node.player === 1) {
+                                    ctx.fillStyle = "#101418"
+                                } else if (node.player === 2) {
+                                    ctx.fillStyle = "#fff8e8"
+                                } else {
+                                    ctx.fillStyle = "#d9e3e9"
+                                }
+                                ctx.fill()
+                                ctx.lineWidth = node.current ? 3 : 1.5
+                                ctx.strokeStyle = node.current ? "#2b83c6" : (node.player === 2 ? "#65747d" : "#41515a")
+                                ctx.stroke()
+                                ctx.fillStyle = node.player === 1 ? "#f7fbfd" : "#1a252d"
+                            }
+
                             ctx.font = node.current ? "bold 10px sans-serif" : "10px sans-serif"
                             ctx.textAlign = "center"
                             ctx.textBaseline = "middle"

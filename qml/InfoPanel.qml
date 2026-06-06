@@ -15,11 +15,12 @@ Rectangle {
     anchors.bottomMargin: app.bottomContentMargin
     width: app.infoPanelWidth
     radius: 4
-    color: "#4c5458"
-    border.color: "#3b4449"
-    clip: true
+    color: "transparent"
+    border.width: 0
+    clip: false
     z: 45
 
+    readonly property int panelPadding: app.compactLayout ? 9 : 12
     readonly property int tableRowHeight: app.compactLayout ? 22 : 24
     readonly property int tableHeaderHeight: app.compactLayout ? 23 : 25
     readonly property int indexColumnWidth: app.compactLayout ? 38 : 44
@@ -30,6 +31,14 @@ Rectangle {
     readonly property int winrateGraphHeight: 96
     readonly property int activeStoneSize: 44
     readonly property int inactiveStoneSize: 34
+    readonly property int panelGap: app.compactLayout ? 8 : 10
+    readonly property bool winrateBarVisible: app.analysisModeActive() || app.engineWinratePlaceholderActive()
+    readonly property bool winrateGraphVisible: app.analysisModeActive()
+    readonly property int topPanelHeight: panelPadding * 2
+                                          + summaryRowHeight
+                                          + (winrateBarVisible ? 6 + 1 + 6 + winrateBarHeight : 0)
+                                          + (winrateGraphVisible ? 6 + winrateGraphHeight : 0)
+                                          + 2
     readonly property int positionColumnWidth: Math.max(64, candidateTable.width
                                                         - indexColumnWidth
                                                         - winrateColumnWidth
@@ -83,131 +92,145 @@ Rectangle {
     }
 
     Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
+        id: summaryPanel
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: infoPanel.topPanelHeight
         radius: 4
-        color: "transparent"
-        border.color: "#6a7377"
-        opacity: 0.55
-    }
-
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: app.compactLayout ? 9 : 12
-        spacing: 6
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.minimumHeight: infoPanel.summaryRowHeight
-            Layout.preferredHeight: infoPanel.summaryRowHeight
-            Layout.maximumHeight: infoPanel.summaryRowHeight
-            spacing: 12
-
-            ColumnLayout {
-                Layout.preferredWidth: 86
-                Layout.fillHeight: true
-                spacing: 5
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: app.currentPlayer === 1 ? infoPanel.activeStoneSize : infoPanel.inactiveStoneSize
-                        height: width
-                        radius: width / 2
-                        color: "#050607"
-                        border.color: "#11181d"
-                        border.width: 1
-                    }
-                }
-
-                Label {
-                    text: app.trText("captured") + ": " + app.blackCaptures
-                    color: "#edf2f4"
-                    font.pixelSize: app.compactLayout ? 13 : 15
-                    horizontalAlignment: Text.AlignHCenter
-                    Layout.fillWidth: true
-                }
-            }
-
-            ColumnLayout {
-                Layout.preferredWidth: 58
-                Layout.fillHeight: true
-                spacing: 3
-
-                Label {
-                    text: app.currentMoveNumberText()
-                    color: "#f1f5f7"
-                    font.pixelSize: app.compactLayout ? 20 : 24
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    Layout.fillWidth: true
-                }
-
-                Rectangle {
-                    Layout.alignment: Qt.AlignHCenter
-                    width: app.compactLayout ? 14 : 16
-                    height: width
-                    radius: width / 2
-                    color: app.engineDotColor()
-                    border.color: "#3b4449"
-                    border.width: 1
-                }
-
-                Label {
-                    text: Number(app.komi).toFixed(1)
-                    color: "#f1f5f7"
-                    font.pixelSize: app.compactLayout ? 18 : 22
-                    horizontalAlignment: Text.AlignHCenter
-                    Layout.fillWidth: true
-                }
-            }
-
-            ColumnLayout {
-                Layout.preferredWidth: 86
-                Layout.fillHeight: true
-                spacing: 5
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: app.currentPlayer === 2 ? infoPanel.activeStoneSize : infoPanel.inactiveStoneSize
-                        height: width
-                        radius: width / 2
-                        color: "#f8fbfd"
-                        border.color: "#d7dee3"
-                        border.width: 1
-                    }
-                }
-
-                Label {
-                    text: app.trText("captured") + ": " + app.whiteCaptures
-                    color: "#edf2f4"
-                    font.pixelSize: app.compactLayout ? 13 : 15
-                    horizontalAlignment: Text.AlignHCenter
-                    Layout.fillWidth: true
-                }
-            }
-        }
+        color: "#4c5458"
+        border.color: "#3b4449"
+        border.width: 1
+        clip: true
 
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: "#384146"
-            opacity: 0.75
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: 4
+            color: "transparent"
+            border.color: "#6a7377"
+            opacity: 0.55
         }
 
-        Item {
-            id: winrateBarSlot
-            Layout.fillWidth: true
-            Layout.minimumHeight: infoPanel.winrateBarHeight
-            Layout.preferredHeight: infoPanel.winrateBarHeight
-            Layout.maximumHeight: infoPanel.winrateBarHeight
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: infoPanel.panelPadding
+            spacing: 6
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.minimumHeight: infoPanel.summaryRowHeight
+                Layout.preferredHeight: infoPanel.summaryRowHeight
+                Layout.maximumHeight: infoPanel.summaryRowHeight
+                spacing: 12
+
+                ColumnLayout {
+                    Layout.preferredWidth: 86
+                    Layout.fillHeight: true
+                    spacing: 5
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: app.currentPlayer === 1 ? infoPanel.activeStoneSize : infoPanel.inactiveStoneSize
+                            height: width
+                            radius: width / 2
+                            color: "#050607"
+                            border.color: "#11181d"
+                            border.width: 1
+                        }
+                    }
+
+                    Label {
+                        text: app.trText("captured") + ": " + app.blackCaptures
+                        color: "#edf2f4"
+                        font.pixelSize: app.compactLayout ? 13 : 15
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.preferredWidth: 58
+                    Layout.fillHeight: true
+                    spacing: 3
+
+                    Label {
+                        text: app.currentMoveNumberText()
+                        color: "#f1f5f7"
+                        font.pixelSize: app.compactLayout ? 20 : 24
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                    }
+
+                    Rectangle {
+                        Layout.alignment: Qt.AlignHCenter
+                        width: app.compactLayout ? 14 : 16
+                        height: width
+                        radius: width / 2
+                        color: app.engineDotColor()
+                        border.color: "#3b4449"
+                        border.width: 1
+                    }
+
+                    Label {
+                        text: Number(app.komi).toFixed(1)
+                        color: "#f1f5f7"
+                        font.pixelSize: app.compactLayout ? 18 : 22
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.preferredWidth: 86
+                    Layout.fillHeight: true
+                    spacing: 5
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: app.currentPlayer === 2 ? infoPanel.activeStoneSize : infoPanel.inactiveStoneSize
+                            height: width
+                            radius: width / 2
+                            color: "#f8fbfd"
+                            border.color: "#d7dee3"
+                            border.width: 1
+                        }
+                    }
+
+                    Label {
+                        text: app.trText("captured") + ": " + app.whiteCaptures
+                        color: "#edf2f4"
+                        font.pixelSize: app.compactLayout ? 13 : 15
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                    }
+                }
+            }
+
+            Rectangle {
+                visible: infoPanel.winrateBarVisible
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: "#384146"
+                opacity: 0.75
+            }
+
+            Item {
+                id: winrateBarSlot
+                visible: infoPanel.winrateBarVisible
+                Layout.fillWidth: true
+                Layout.minimumHeight: infoPanel.winrateBarHeight
+                Layout.preferredHeight: infoPanel.winrateBarHeight
+                Layout.maximumHeight: infoPanel.winrateBarHeight
 
             Item {
                 id: winrateContent
@@ -277,6 +300,7 @@ Rectangle {
 
         Rectangle {
             id: winrateGraph
+            visible: infoPanel.winrateGraphVisible
             Layout.fillWidth: true
             Layout.minimumHeight: infoPanel.winrateGraphHeight
             Layout.preferredHeight: infoPanel.winrateGraphHeight
@@ -371,63 +395,71 @@ Rectangle {
                     function onAnalysisRevisionChanged() { winrateCanvas.requestPaint() }
                     function onCurrentNodeIdChanged() { winrateCanvas.requestPaint() }
                     function onLanguageChanged() { winrateCanvas.requestPaint() }
+                    function onPlayModeChanged() { winrateCanvas.requestPaint() }
                 }
             }
         }
 
-        Rectangle {
-            id: candidateTable
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 120
-            color: "#dfe3e5"
-            border.color: "#8d9498"
-            clip: true
+        }
+    }
 
-            Row {
-                id: candidateHeader
-                width: parent.width
-                height: infoPanel.tableHeaderHeight
+    Rectangle {
+        id: candidateTable
+        visible: app.analysisModeActive()
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: summaryPanel.bottom
+        anchors.topMargin: infoPanel.panelGap
+        anchors.bottom: parent.bottom
+        radius: 4
+        color: "#dfe3e5"
+        border.color: "#8d9498"
+        clip: true
 
-                TableHeaderCell {
-                    width: infoPanel.indexColumnWidth
-                    text: app.trText("candidateIndex")
-                }
+        Row {
+            id: candidateHeader
+            width: parent.width
+            height: infoPanel.tableHeaderHeight
 
-                TableHeaderCell {
-                    width: infoPanel.positionColumnWidth
-                    text: app.trText("candidatePosition")
-                }
-
-                TableHeaderCell {
-                    width: infoPanel.winrateColumnWidth
-                    text: app.trText("candidateWinrate")
-                }
-
-                TableHeaderCell {
-                    width: infoPanel.visitsColumnWidth
-                    text: app.trText("candidateVisits")
-                }
+            TableHeaderCell {
+                width: infoPanel.indexColumnWidth
+                text: app.trText("candidateIndex")
             }
 
-            Flickable {
-                id: candidateFlick
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: candidateHeader.bottom
-                anchors.bottom: parent.bottom
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                contentWidth: width
-                contentHeight: candidateColumn.height
+            TableHeaderCell {
+                width: infoPanel.positionColumnWidth
+                text: app.trText("candidatePosition")
+            }
 
-                ScrollBar.vertical: StraightScrollBar {
-                    policy: ScrollBar.AsNeeded
-                }
+            TableHeaderCell {
+                width: infoPanel.winrateColumnWidth
+                text: app.trText("candidateWinrate")
+            }
 
-                Column {
-                    id: candidateColumn
-                    width: candidateFlick.width
+            TableHeaderCell {
+                width: infoPanel.visitsColumnWidth
+                text: app.trText("candidateVisits")
+            }
+        }
+
+        Flickable {
+            id: candidateFlick
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: candidateHeader.bottom
+            anchors.bottom: parent.bottom
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            contentWidth: width
+            contentHeight: candidateColumn.height
+
+            ScrollBar.vertical: StraightScrollBar {
+                policy: ScrollBar.AsNeeded
+            }
+
+            Column {
+                id: candidateColumn
+                width: candidateFlick.width
 
                     Repeater {
                         model: app.engineCandidateTableItems
@@ -487,4 +519,3 @@ Rectangle {
             }
         }
     }
-}

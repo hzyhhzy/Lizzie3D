@@ -70,6 +70,9 @@ EngineController::EngineController(QObject *parent)
         m_pendingCommands.clear();
         m_syncResponsesPending = 0;
         m_acceptCandidateInfo = false;
+        m_moveRequestActive = false;
+        m_moveResponsesPending = 0;
+        m_moveRequestId = 0;
         setReady(false);
         setRunning(false);
         m_nameResponsePending = false;
@@ -89,6 +92,9 @@ EngineController::EngineController(QObject *parent)
                 m_nameResponsePending = false;
                 m_syncResponsesPending = 0;
                 m_acceptCandidateInfo = false;
+                m_moveRequestActive = false;
+                m_moveResponsesPending = 0;
+                m_moveRequestId = 0;
 
                 if (intentionalStop) {
                     setStatusText(QStringLiteral("Engine stopped"));
@@ -180,6 +186,9 @@ void EngineController::restart()
     m_pendingCommands.clear();
     m_syncResponsesPending = 0;
     m_acceptCandidateInfo = false;
+    m_moveRequestActive = false;
+    m_moveResponsesPending = 0;
+    m_moveRequestId = 0;
 
     if (m_process.state() != QProcess::NotRunning) {
         m_stopping = true;
@@ -200,6 +209,9 @@ void EngineController::stop()
     m_pendingCommands.clear();
     m_syncResponsesPending = 0;
     m_acceptCandidateInfo = false;
+    m_moveRequestActive = false;
+    m_moveResponsesPending = 0;
+    m_moveRequestId = 0;
 
     if (m_process.state() == QProcess::NotRunning) {
         setRunning(false);
@@ -252,6 +264,38 @@ void EngineController::requestAnalysis(const QStringList &syncCommands, const QS
         m_pendingCommands.append(analyzeCommand.trimmed());
     m_syncResponsesPending = syncCommands.size();
     m_acceptCandidateInfo = m_syncResponsesPending == 0;
+    m_moveRequestActive = false;
+    m_moveResponsesPending = 0;
+    m_moveRequestId = 0;
+
+    if (m_process.state() == QProcess::Running) {
+        sendPendingCommands();
+    } else if (m_process.state() == QProcess::NotRunning) {
+        startProcess();
+    } else {
+        setStatusText(QStringLiteral("Starting engine"));
+    }
+}
+
+void EngineController::requestMove(const QStringList &syncCommands,
+                                   const QString &timeSettingsCommand,
+                                   const QString &genmoveCommand,
+                                   int requestId)
+{
+    clearCandidates();
+    m_pendingCommands = syncCommands;
+    const QString trimmedTimeSettings = timeSettingsCommand.trimmed();
+    const QString trimmedGenmove = genmoveCommand.trimmed();
+    if (!trimmedTimeSettings.isEmpty())
+        m_pendingCommands.append(trimmedTimeSettings);
+    if (!trimmedGenmove.isEmpty())
+        m_pendingCommands.append(trimmedGenmove);
+
+    m_syncResponsesPending = 0;
+    m_acceptCandidateInfo = false;
+    m_moveRequestActive = !trimmedGenmove.isEmpty();
+    m_moveResponsesPending = syncCommands.size() + (trimmedTimeSettings.isEmpty() ? 0 : 1);
+    m_moveRequestId = m_moveRequestActive ? requestId : 0;
 
     if (m_process.state() == QProcess::Running) {
         sendPendingCommands();
@@ -330,6 +374,9 @@ void EngineController::startProcess()
     setReady(false);
     m_nameResponsePending = false;
     m_acceptCandidateInfo = false;
+    m_moveRequestActive = false;
+    m_moveResponsesPending = 0;
+    m_moveRequestId = 0;
     m_stdoutBuffer.clear();
     m_stderrBuffer.clear();
     m_process.setWorkingDirectory(QCoreApplication::applicationDirPath());
@@ -395,6 +442,9 @@ void EngineController::handleStdoutLine(const QString &line)
         return;
     }
 
+    if (handleMoveResponseLine(line))
+        return;
+
     if (m_syncResponsesPending > 0
             && (line.startsWith(QLatin1Char('=')) || line.startsWith(QLatin1Char('?')))) {
         --m_syncResponsesPending;
@@ -407,6 +457,29 @@ void EngineController::handleStderrLine(const QString &line)
 {
     emit engineErrorOutput(line);
     setStatusText(line);
+}
+
+bool EngineController::handleMoveResponseLine(const QString &line)
+{
+    if (!m_moveRequestActive)
+        return false;
+    if (!line.startsWith(QLatin1Char('=')) && !line.startsWith(QLatin1Char('?')))
+        return false;
+
+    if (m_moveResponsesPending > 0) {
+        --m_moveResponsesPending;
+        return true;
+    }
+
+    m_moveRequestActive = false;
+    const int requestId = m_moveRequestId;
+    m_moveRequestId = 0;
+    const bool ok = line.startsWith(QLatin1Char('='));
+    QString payload = line.mid(1).trimmed();
+    if (payload.isEmpty() && ok)
+        payload = QStringLiteral("pass");
+    emit moveGenerated(requestId, payload, ok, line);
+    return true;
 }
 
 void EngineController::parseInfoLine(const QString &line)

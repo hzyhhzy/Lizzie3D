@@ -39,6 +39,10 @@ public:
     Q_INVOKABLE void stop();
     Q_INVOKABLE void sendCommand(const QString &command);
     Q_INVOKABLE void requestAnalysis(const QStringList &syncCommands, const QString &analyzeCommand);
+    Q_INVOKABLE void requestMove(const QStringList &syncCommands,
+                                 const QString &timeSettingsCommand,
+                                 const QString &genmoveCommand,
+                                 int requestId);
     Q_INVOKABLE void clearCandidates();
 
 signals:
@@ -53,6 +57,7 @@ signals:
     void engineInput(const QString &line);
     void engineOutput(const QString &line);
     void engineErrorOutput(const QString &line);
+    void moveGenerated(int requestId, const QString &move, bool ok, const QString &rawLine);
 
 private:
     static QStringList splitCommandLine(const QString &commandLine);
@@ -63,6 +68,7 @@ private:
     void consumeLines(QByteArray &buffer, bool stderrStream);
     void handleStdoutLine(const QString &line);
     void handleStderrLine(const QString &line);
+    bool handleMoveResponseLine(const QString &line);
     void parseInfoLine(const QString &line);
     void setRunning(bool running);
     void setReady(bool ready);
@@ -85,6 +91,9 @@ private:
     QStringList m_pendingCommands;
     int m_syncResponsesPending = 0;
     bool m_acceptCandidateInfo = false;
+    bool m_moveRequestActive = false;
+    int m_moveResponsesPending = 0;
+    int m_moveRequestId = 0;
     QByteArray m_stdoutBuffer;
     QByteArray m_stderrBuffer;
 };

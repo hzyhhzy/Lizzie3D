@@ -122,6 +122,12 @@ ApplicationWindow {
             "engineLoading": "引擎加载中",
             "engineStartingNotice": "引擎启动中，可能需要几分钟",
             "engineAutoAnalyzing": "自动分析中",
+            "playModeAnalysis": "分析模式",
+            "playModeAiBlack": "AI执黑",
+            "playModeAiWhite": "AI执白",
+            "playModeAiSelf": "AI自战",
+            "secondsPerMove": "每步秒",
+            "engineThinking": "引擎思考中",
             "komi": "贴目",
             "stoneColor": "落子",
             "stoneColorAuto": "黑白交替",
@@ -130,6 +136,15 @@ ApplicationWindow {
             "captured": "提子",
             "coordinateShort": "坐标",
             "playMove": "落子",
+            "passMove": "Pass",
+            "passMessage": "停一手",
+            "gameOverTitle": "对局结束",
+            "blackWins": "黑方胜",
+            "whiteWins": "白方胜",
+            "drawGame": "和棋",
+            "gameOverDoublePass": "双方连续 Pass",
+            "gameOverFive": "五子连线",
+            "gameStopped": "对局已停止",
             "coordinateInvalid": "坐标无效",
             "moveClickConfirm": "落子双击确认",
             "viewAndClipLayers": "视图与裁剪层",
@@ -145,6 +160,7 @@ ApplicationWindow {
             "confirmRuleChangeSave": "切换规则会清空当前棋盘。是否先保存棋谱？",
             "ruleChanged": "已切换规则",
             "suicideMove": "禁入点",
+            "koMove": "打劫禁着",
             "captureMessage": "提子",
             "helpKeyMoveLateral": "Q/E：沿当前视角上下移动",
             "helpKeyMoveSide": "A/D：沿当前视角左右移动",
@@ -154,8 +170,9 @@ ApplicationWindow {
             "helpKeyRotate": "←/→：水平旋转镜头",
             "helpKeyResetCamera": "C：重置视角",
             "helpKeyResetClip": "V：重置裁剪层",
-            "helpKeyPauseEngine": "Space：暂停/继续分析",
+            "helpKeyPauseEngine": "Space：暂停/继续分析；对局中停止对局",
             "helpKeyPlayBest": ",：按引擎首选落子",
+            "helpKeyPass": "P：Pass",
             "helpKeyEngineLog": "U：打开引擎通信窗口",
             "helpKeyDelete": "Backspace：删除当前节点",
             "helpKeyMoveLabels": "M：切换棋子手数显示",
@@ -269,6 +286,12 @@ ApplicationWindow {
             "engineLoading": "Loading engine",
             "engineStartingNotice": "Engine is starting, this may take a few minutes",
             "engineAutoAnalyzing": "Auto analyzing",
+            "playModeAnalysis": "Analysis",
+            "playModeAiBlack": "AI black",
+            "playModeAiWhite": "AI white",
+            "playModeAiSelf": "AI self-play",
+            "secondsPerMove": "Sec/move",
+            "engineThinking": "Engine thinking",
             "komi": "Komi",
             "stoneColor": "Stone",
             "stoneColorAuto": "Alternate",
@@ -277,6 +300,15 @@ ApplicationWindow {
             "captured": "Captures",
             "coordinateShort": "Coord",
             "playMove": "Play",
+            "passMove": "Pass",
+            "passMessage": "passes",
+            "gameOverTitle": "Game over",
+            "blackWins": "Black wins",
+            "whiteWins": "White wins",
+            "drawGame": "Draw",
+            "gameOverDoublePass": "Double pass",
+            "gameOverFive": "Five in a row",
+            "gameStopped": "Game stopped",
             "coordinateInvalid": "Invalid coordinate",
             "moveClickConfirm": "Click twice to play",
             "viewAndClipLayers": "View and clip",
@@ -292,6 +324,7 @@ ApplicationWindow {
             "confirmRuleChangeSave": "Changing rules will clear the current board. Save the SGF first?",
             "ruleChanged": "Rule changed",
             "suicideMove": "Illegal self-capture",
+            "koMove": "Ko is forbidden",
             "captureMessage": "Captures",
             "helpKeyMoveLateral": "Q/E: move up/down relative to the camera",
             "helpKeyMoveSide": "A/D: move left/right relative to the camera",
@@ -301,8 +334,9 @@ ApplicationWindow {
             "helpKeyRotate": "Left/Right: rotate the camera horizontally",
             "helpKeyResetCamera": "C: reset view",
             "helpKeyResetClip": "V: reset clip layers",
-            "helpKeyPauseEngine": "Space: pause/resume analysis",
+            "helpKeyPauseEngine": "Space: pause/resume analysis; stop game play",
             "helpKeyPlayBest": ",: play the engine best move",
+            "helpKeyPass": "P: pass",
             "helpKeyEngineLog": "U: open engine communication",
             "helpKeyDelete": "Backspace: delete current node",
             "helpKeyMoveLabels": "M: switch move-number display",
@@ -533,6 +567,7 @@ ApplicationWindow {
             Action { text: root.trText("helpKeyResetClip"); enabled: false }
             Action { text: root.trText("helpKeyPauseEngine"); enabled: false }
             Action { text: root.trText("helpKeyPlayBest"); enabled: false }
+            Action { text: root.trText("helpKeyPass"); enabled: false }
             Action { text: root.trText("helpKeyEngineLog"); enabled: false }
             Action { text: root.trText("helpKeyDelete"); enabled: false }
             Action { text: root.trText("helpKeyMoveLabels"); enabled: false }
@@ -794,6 +829,36 @@ ApplicationWindow {
         height: 560
         visible: false
         property bool positionedOnce: false
+        property bool logFollowsTail: true
+        property bool rebuildingLog: false
+
+        function logAtTail() {
+            if (!engineCommunicationList || engineCommunicationList.contentHeight <= engineCommunicationList.height)
+                return true
+            return engineCommunicationList.contentY >= engineCommunicationList.contentHeight
+                   - engineCommunicationList.height - 6
+        }
+
+        function scrollLogToEnd() {
+            if (!engineCommunicationList)
+                return
+            if (engineCommunicationList.count <= 0) {
+                engineCommunicationList.contentY = 0
+                logFollowsTail = true
+                return
+            }
+
+            engineCommunicationList.forceLayout()
+            engineCommunicationList.positionViewAtIndex(engineCommunicationList.count - 1, ListView.End)
+            logFollowsTail = true
+        }
+
+        function queueScrollLogToEnd() {
+            Qt.callLater(function() {
+                if (engineCommunicationDialog.logFollowsTail)
+                    engineCommunicationDialog.scrollLogToEnd()
+            })
+        }
 
         function openWindow() {
             if (!positionedOnce) {
@@ -806,8 +871,9 @@ ApplicationWindow {
             visible = true
             raise()
             requestActivate()
+            logFollowsTail = true
             Qt.callLater(function() {
-                engineCommunicationList.positionViewAtEnd()
+                engineCommunicationDialog.scrollLogToEnd()
                 engineCommunicationCommandField.forceActiveFocus()
             })
         }
@@ -869,9 +935,18 @@ ApplicationWindow {
                     boundsBehavior: Flickable.StopAtBounds
                     spacing: 1
 
-                    onCountChanged: Qt.callLater(function() {
-                        engineCommunicationList.positionViewAtEnd()
-                    })
+                    onContentYChanged: {
+                        if (!engineCommunicationDialog.rebuildingLog)
+                            engineCommunicationDialog.logFollowsTail = engineCommunicationDialog.logAtTail()
+                    }
+                    onHeightChanged: {
+                        if (engineCommunicationDialog.logFollowsTail)
+                            engineCommunicationDialog.queueScrollLogToEnd()
+                    }
+                    onCountChanged: {
+                        if (engineCommunicationDialog.logFollowsTail)
+                            engineCommunicationDialog.queueScrollLogToEnd()
+                    }
 
                     ScrollBar.vertical: Basic.ScrollBar {
                         policy: ScrollBar.AsNeeded
@@ -976,6 +1051,81 @@ ApplicationWindow {
         }
 
         onRejected: focusBoardInput()
+    }
+
+    Basic.Dialog {
+        id: gameOverDialog
+        modal: false
+        title: root.trText("gameOverTitle")
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        padding: 18
+        width: Math.min(360, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        background: Rectangle {
+            radius: 10
+            color: "#f8fbfd"
+            border.color: "#8ea5b1"
+            border.width: 1
+        }
+
+        header: Rectangle {
+            height: 48
+            color: "#e6eff4"
+            radius: 10
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: parent.radius
+                color: parent.color
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: "#c5d4dc"
+            }
+
+            Label {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 18
+                anchors.rightMargin: 18
+                text: gameOverDialog.title
+                color: "#14242e"
+                font.pixelSize: 17
+                font.bold: true
+            }
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 16
+
+            Label {
+                text: root.gameOverDialogText()
+                color: "#17212a"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 16
+                font.bold: true
+                Layout.fillWidth: true
+            }
+
+            SavePromptButton {
+                text: root.trText("confirm")
+                primary: true
+                Layout.alignment: Qt.AlignRight
+                onClicked: {
+                    gameOverDialog.close()
+                    root.focusBoardInput()
+                }
+            }
+        }
     }
 
     Basic.Dialog {
@@ -1425,6 +1575,21 @@ ApplicationWindow {
     property bool enginePaused: false
     property bool engineLoading: true
     property bool engineNoticeDismissed: false
+    readonly property int playModeAnalysis: 0
+    readonly property int playModeAiBlack: 1
+    readonly property int playModeAiWhite: 2
+    readonly property int playModeAiSelf: 3
+    property int playMode: playModeAnalysis
+    property real secondsPerMove: 5.0
+    property bool genmoveInFlight: false
+    property int genmoveRequestSerial: 0
+    property int activeGenmoveRequestId: 0
+    property int genmovePlayer: 0
+    property bool discardActiveGenmove: false
+    property bool applyingGeneratedMove: false
+    property bool gameFinished: false
+    property int gameWinner: 0
+    property string gameOverReason: ""
     property var engineCandidates: []
     property var engineCandidateItems: []
     property var engineCandidateTableItems: []
@@ -1448,6 +1613,10 @@ ApplicationWindow {
     property int blackCaptures: 0
     property int whiteCaptures: 0
     property var gomokuWinLineItems: []
+    property string koLocKey: ""
+    property int koLocX: -1
+    property int koLocY: -1
+    property int koLocZ: -1
     property var legalPointMap: ({})
     property int legalityRevision: 0
     property int coordinateInputX: 0
@@ -1519,6 +1688,7 @@ ApplicationWindow {
         scheduleAutoAnalysis()
     }
     onKomiChanged: scheduleAutoAnalysis()
+    onPlayModeChanged: handlePlayModeChanged()
     onCandidateDisplayCountChanged: rebuildEngineCandidateItems()
     onCandidateMinVisitRatioChanged: rebuildEngineCandidateItems()
     onMoveClickConfirmChanged: {
@@ -1604,11 +1774,15 @@ ApplicationWindow {
     }
 
     function windowTitleText() {
-        return trText("windowTitle") + " " + boardDimensionsText()
+        return trText("windowTitle")
     }
 
     function keyFor(x, y, z) {
         return x + "," + y + "," + z
+    }
+
+    function passKey() {
+        return "pass"
     }
 
     function pointPosition(x, y, z) {
@@ -1697,6 +1871,8 @@ ApplicationWindow {
     function engineCoordinateForNode(node) {
         if (!node)
             return ""
+        if (node.isPass)
+            return "pass"
         if (useFlattened2DCoordinates) {
             var flat = flattened2DCoordinate(node.x, node.y, node.z)
             return gtpCoordinateName(flat.x, flat.y, flattened2DBoardWidth(), flattened2DBoardHeight())
@@ -1824,6 +2000,8 @@ ApplicationWindow {
     }
 
     function recordCurrentAnalysisFromCandidates() {
+        if (!analysisModeActive())
+            return
         var node = currentNode()
         if (!node || engineCandidateTableItems.length <= 0)
             return
@@ -1842,6 +2020,8 @@ ApplicationWindow {
     function currentAnalysisBlackWinrate() {
         analysisRevision
         currentNodeId
+        if (!analysisModeActive())
+            return -1
         var node = currentNode()
         if (!node || node.analysisBlackWinrate === undefined)
             return -1
@@ -1861,6 +2041,8 @@ ApplicationWindow {
     function winrateHistoryPoints() {
         analysisRevision
         currentNodeId
+        if (!analysisModeActive())
+            return []
         var path = nodePath(currentNodeId)
         var points = []
         for (var i = 0; i < path.length; ++i) {
@@ -1886,6 +2068,13 @@ ApplicationWindow {
     }
 
     function rebuildEngineCandidateItems() {
+        if (!analysisModeActive()) {
+            engineCandidateTableItems = []
+            engineCandidateItems = []
+            updateBestCandidateRing([])
+            return
+        }
+
         var items = []
         var sorted = sortedEngineCandidates()
         rebuildEngineCandidateTableItems(sorted)
@@ -1986,6 +2175,41 @@ ApplicationWindow {
         stoneLightingEnabled = defaultStoneLightingEnabled
         lightFollowsCamera = defaultLightFollowsCamera
         moveNumberDisplayMode = defaultMoveNumberDisplayMode
+    }
+
+    function analysisModeActive() {
+        return playMode === playModeAnalysis
+    }
+
+    function engineReadyForPlayMode() {
+        return !!engineController
+               && engineController.running
+               && engineController.ready
+               && !engineController.failed
+               && !engineLoading
+    }
+
+    function setPlayMode(mode) {
+        if (mode !== playModeAnalysis && !engineReadyForPlayMode())
+            return
+        if (mode !== playMode)
+            noteBoardOperationDuringGenmove()
+        playMode = mode
+    }
+
+    function handlePlayModeChanged() {
+        if (playMode === playModeAnalysis) {
+            gameFinished = false
+            enginePaused = false
+            scheduleAutoAnalysis()
+            return
+        }
+
+        clearEngineCandidates()
+        enginePaused = false
+        if (stoneColorMode !== stoneColorModeAuto)
+            stoneColorMode = stoneColorModeAuto
+        requestAiMoveIfNeeded()
     }
 
     function gameRuleText() {
@@ -2354,39 +2578,43 @@ ApplicationWindow {
         return value ? value.player : 0
     }
 
-    function pointLegalInMap(map, x, y, z, player) {
+    function pointLegalInMap(map, x, y, z, player, activeKoLocKey) {
         if (!pointInBoard(x, y, z) || stoneMapPlayerAt(map, x, y, z) !== 0)
             return false
 
         if (gameRuleMode !== gameRuleGo)
             return true
 
+        var pointKey = keyFor(x, y, z)
+        if (activeKoLocKey !== "" && pointKey === activeKoLocKey)
+            return false
+
         var item = {
             "x": x,
             "y": y,
             "z": z,
-            "key": keyFor(x, y, z),
+            "key": pointKey,
             "player": player,
             "moveNumber": 0,
             "nodeId": -1,
             "position": pointPosition(x, y, z)
         }
-        return simulateGoMoveOnMap(cloneStoneMap(map), item).ok
+        return simulateGoMoveOnMap(cloneStoneMap(map), item, false).ok
     }
 
-    function buildPointLegalityMap(map, player) {
+    function buildPointLegalityMap(map, player, activeKoLocKey) {
         var result = ({})
         for (var y = 0; y < boardSizeY; ++y) {
             for (var z = 0; z < boardSizeZ; ++z) {
                 for (var x = 0; x < boardSizeX; ++x)
-                    result[keyFor(x, y, z)] = pointLegalInMap(map, x, y, z, player)
+                    result[keyFor(x, y, z)] = pointLegalInMap(map, x, y, z, player, activeKoLocKey)
             }
         }
         return result
     }
 
     function rebuildPointLegality() {
-        legalPointMap = buildPointLegalityMap(stones, currentPlayer)
+        legalPointMap = buildPointLegalityMap(stones, currentPlayer, koLocKey)
         legalityRevision += 1
     }
 
@@ -2432,6 +2660,9 @@ ApplicationWindow {
     }
 
     function makeStoneItemFromNode(node) {
+        if (node.isPass)
+            return null
+
         return {
             "x": node.x,
             "y": node.y,
@@ -2490,18 +2721,66 @@ ApplicationWindow {
         return false
     }
 
+    function groupLibertyCountInMap(map, group) {
+        var offsets = neighborOffsets()
+        var liberties = ({})
+        var count = 0
+        for (var i = 0; i < group.length; ++i) {
+            var stone = group[i]
+            for (var n = 0; n < offsets.length; ++n) {
+                var nx = stone.x + offsets[n].dx
+                var ny = stone.y + offsets[n].dy
+                var nz = stone.z + offsets[n].dz
+                if (!pointInBoard(nx, ny, nz) || stoneMapPlayerAt(map, nx, ny, nz) !== 0)
+                    continue
+
+                var libertyKey = keyFor(nx, ny, nz)
+                if (!liberties[libertyKey]) {
+                    liberties[libertyKey] = true
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+
     function removeGroupFromMap(map, group) {
         for (var i = 0; i < group.length; ++i)
             delete map[group[i].key]
     }
 
-    function simulateGoMoveOnMap(map, stoneItem) {
+    function copyStoneItem(stone) {
+        return {
+            "x": stone.x,
+            "y": stone.y,
+            "z": stone.z,
+            "key": stone.key,
+            "player": stone.player,
+            "moveNumber": stone.moveNumber,
+            "nodeId": stone.nodeId,
+            "position": stone.position
+        }
+    }
+
+    function goMoveResult(ok, captured, reason, capturedStones, ownGroupSize, ownLibertyCount) {
+        return {
+            "ok": ok,
+            "captured": captured,
+            "reason": reason,
+            "capturedStones": capturedStones || [],
+            "ownGroupSize": ownGroupSize || 0,
+            "ownLibertyCount": ownLibertyCount || 0
+        }
+    }
+
+    function simulateGoMoveOnMap(map, stoneItem, collectKoInfo) {
         if (map[stoneItem.key] !== undefined)
-            return { "ok": false, "captured": 0, "reason": "occupied" }
+            return goMoveResult(false, 0, "occupied")
 
         map[stoneItem.key] = stoneItem
 
         var captured = 0
+        var capturedStones = []
         var opponent = stoneItem.player === 1 ? 2 : 1
         var offsets = neighborOffsets()
         var checked = ({})
@@ -2519,25 +2798,65 @@ ApplicationWindow {
                 checked[group[g].key] = true
             if (!groupHasLibertyInMap(map, group)) {
                 captured += group.length
+                if (collectKoInfo) {
+                    for (var c = 0; c < group.length; ++c)
+                        capturedStones.push(copyStoneItem(group[c]))
+                }
                 removeGroupFromMap(map, group)
             }
         }
 
         var ownGroup = collectGroupInMap(map, stoneItem.x, stoneItem.y, stoneItem.z, ({}))
         if (!groupHasLibertyInMap(map, ownGroup)) {
-            removeGroupFromMap(map, ownGroup)
-            return { "ok": false, "captured": captured, "reason": "suicide" }
+            delete map[stoneItem.key]
+            for (var r = 0; r < capturedStones.length; ++r)
+                map[capturedStones[r].key] = capturedStones[r]
+            return goMoveResult(false, captured, "suicide", capturedStones, ownGroup.length, 0)
         }
 
-        return { "ok": true, "captured": captured, "reason": "" }
+        var ownLibertyCount = collectKoInfo ? groupLibertyCountInMap(map, ownGroup) : 0
+        return goMoveResult(true, captured, "", capturedStones, ownGroup.length, ownLibertyCount)
+    }
+
+    function emptyKoLoc() {
+        return { "key": "", "x": -1, "y": -1, "z": -1 }
+    }
+
+    function koLocFromGoMoveResult(result) {
+        if (gameRuleMode !== gameRuleGo || !result || !result.ok
+                || result.captured !== 1
+                || result.capturedStones.length !== 1
+                || result.ownGroupSize !== 1
+                || result.ownLibertyCount !== 1)
+            return emptyKoLoc()
+
+        var captured = result.capturedStones[0]
+        return { "key": captured.key, "x": captured.x, "y": captured.y, "z": captured.z }
+    }
+
+    function setKoLoc(location) {
+        koLocKey = location && location.key ? location.key : ""
+        koLocX = location && location.x !== undefined ? location.x : -1
+        koLocY = location && location.y !== undefined ? location.y : -1
+        koLocZ = location && location.z !== undefined ? location.z : -1
+    }
+
+    function writeKoLocToNode(node, location) {
+        if (!node)
+            return
+        node.koLocKey = location && location.key ? location.key : ""
+        node.koLocX = location && location.x !== undefined ? location.x : -1
+        node.koLocY = location && location.y !== undefined ? location.y : -1
+        node.koLocZ = location && location.z !== undefined ? location.z : -1
     }
 
     function previewRuleMove(x, y, z, player, moveNumber, nodeId) {
+        var pointKey = keyFor(x, y, z)
         var item = {
             "x": x,
             "y": y,
             "z": z,
-            "key": keyFor(x, y, z),
+            "key": pointKey,
             "player": player,
             "moveNumber": moveNumber,
             "nodeId": nodeId,
@@ -2547,19 +2866,28 @@ ApplicationWindow {
         if (gameRuleMode !== gameRuleGo)
             return { "ok": true, "captured": 0, "reason": "" }
 
-        return simulateGoMoveOnMap(cloneStoneMap(stones), item)
+        if (koLocKey !== "" && pointKey === koLocKey)
+            return goMoveResult(false, 0, "ko")
+
+        return simulateGoMoveOnMap(cloneStoneMap(stones), item, true)
     }
 
-    function applyNodeToPositionMap(map, node) {
+    function applyNodeToPositionMap(map, node, activeKoLocKey) {
+        if (node.isPass)
+            return goMoveResult(true, 0, "pass")
+
         var item = makeStoneItemFromNode(node)
-        if (gameRuleMode === gameRuleGo)
-            return simulateGoMoveOnMap(map, item)
+        if (gameRuleMode === gameRuleGo) {
+            if (activeKoLocKey !== "" && item.key === activeKoLocKey)
+                return goMoveResult(false, 0, "ko")
+            return simulateGoMoveOnMap(map, item, true)
+        }
 
         if (map[item.key] !== undefined)
-            return { "ok": false, "captured": 0, "reason": "occupied" }
+            return goMoveResult(false, 0, "occupied")
 
         map[item.key] = item
-        return { "ok": true, "captured": 0, "reason": "" }
+        return goMoveResult(true, 0, "")
     }
 
     function stoneItemsFromMap(map) {
@@ -2650,16 +2978,19 @@ ApplicationWindow {
     function rebuildPositionFromNode(id) {
         var path = nodePath(id)
         var nextStones = ({})
+        var nextKoLoc = emptyKoLoc()
         var blackCaptureCount = 0
         var whiteCaptureCount = 0
         for (var i = 0; i < path.length; ++i) {
-            var result = applyNodeToPositionMap(nextStones, path[i])
+            var result = applyNodeToPositionMap(nextStones, path[i], nextKoLoc.key)
             if (result.ok && result.captured > 0) {
                 if (path[i].player === 1)
                     blackCaptureCount += result.captured
                 else
                     whiteCaptureCount += result.captured
             }
+            nextKoLoc = result.ok ? koLocFromGoMoveResult(result) : emptyKoLoc()
+            writeKoLocToNode(path[i], nextKoLoc)
         }
 
         stones = nextStones
@@ -2667,9 +2998,10 @@ ApplicationWindow {
         blackCaptures = blackCaptureCount
         whiteCaptures = whiteCaptureCount
         gomokuWinLineItems = buildGomokuWinLineItems(nextStones)
+        setKoLoc(nextKoLoc)
         stoneCount = path.length
         currentPlayer = nextPlayerFromMode()
-        legalPointMap = buildPointLegalityMap(nextStones, currentPlayer)
+        legalPointMap = buildPointLegalityMap(nextStones, currentPlayer, koLocKey)
         legalityRevision += 1
         boardRevision += 1
         statusMode = "turn"
@@ -2678,20 +3010,27 @@ ApplicationWindow {
     }
 
     function resetGameTree() {
+        noteBoardOperationDuringGenmove()
         resetEngineSyncState()
+        gameFinished = false
+        gameWinner = 0
+        gameOverReason = ""
         stones = ({})
         stoneItems = []
         blackCaptures = 0
         whiteCaptures = 0
         gomokuWinLineItems = []
+        setKoLoc(emptyKoLoc())
         legalPointMap = ({})
         gameNodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
-                       "key": "", "player": 0, "moveNumber": 0 }]
+                       "key": "", "player": 0, "moveNumber": 0,
+                       "isPass": false,
+                       "koLocKey": "", "koLocX": -1, "koLocY": -1, "koLocZ": -1 }]
         currentNodeId = 0
         nextNodeId = 1
         stoneCount = 0
         currentPlayer = nextPlayerFromMode()
-        legalPointMap = buildPointLegalityMap(stones, currentPlayer)
+        legalPointMap = buildPointLegalityMap(stones, currentPlayer, koLocKey)
         legalityRevision += 1
         boardRevision += 1
         statusMode = "turn"
@@ -2704,11 +3043,19 @@ ApplicationWindow {
         var node = currentNode()
         if (!node || node.id === 0)
             return trText("rootMove")
+        if (node.isPass)
+            return trText("passMove") + " · " + trText("moveNumber") + " " + node.moveNumber
         return coordinateText(node.x, node.y, node.z) + " · " + trText("moveNumber") + " " + node.moveNumber
     }
 
     function playerName(player) {
         return player === 1 ? trText("black") : trText("white")
+    }
+
+    function playerShortName(player) {
+        if (language === "zh")
+            return player === 1 ? "黑" : "白"
+        return playerName(player)
     }
 
     function statusLabelText() {
@@ -2721,7 +3068,19 @@ ApplicationWindow {
                : playerName(currentPlayer) + " " + trText("toMove")
     }
 
+    function illegalPointMessage(x, y, z, reason) {
+        var label = reason === "ko" || (koLocKey !== "" && keyFor(x, y, z) === koLocKey)
+                    ? trText("koMove")
+                    : reason === "occupied" || stoneAt(x, y, z) !== 0
+                      ? trText("occupied")
+                      : trText("suicideMove")
+        return label + ": " + coordinateText(x, y, z)
+    }
+
     function placeStone(x, y, z) {
+        if (gameFinished)
+            return
+
         var key = keyFor(x, y, z)
         if (stones[key] !== undefined) {
             statusMode = "occupied"
@@ -2735,21 +3094,21 @@ ApplicationWindow {
         if (!parent)
             return
 
+        var movePreview = previewRuleMove(x, y, z, currentPlayer, parent.moveNumber + 1, nextNodeId)
+        if (!movePreview.ok) {
+            statusMode = "message"
+            statusMessage = illegalPointMessage(x, y, z, movePreview.reason)
+            return
+        }
+
+        noteBoardOperationDuringGenmove()
+
         for (var i = 0; i < parent.children.length; ++i) {
             var child = nodeById(parent.children[i])
             if (child && child.key === key) {
                 gotoNode(child.id)
                 return
             }
-        }
-
-        var movePreview = previewRuleMove(x, y, z, currentPlayer, parent.moveNumber + 1, nextNodeId)
-        if (!movePreview.ok) {
-            statusMode = "message"
-            statusMessage = movePreview.reason === "suicide"
-                            ? trText("suicideMove") + ": " + coordinateText(x, y, z)
-                            : trText("occupied") + ": " + coordinateText(x, y, z)
-            return
         }
 
         var node = {
@@ -2761,8 +3120,10 @@ ApplicationWindow {
             "z": z,
             "key": key,
             "player": currentPlayer,
-            "moveNumber": parent.moveNumber + 1
+            "moveNumber": parent.moveNumber + 1,
+            "isPass": false
         }
+        writeKoLocToNode(node, koLocFromGoMoveResult(movePreview))
 
         parent.children.push(node.id)
         gameNodes.push(node)
@@ -2777,6 +3138,115 @@ ApplicationWindow {
             statusMode = "message"
             statusMessage = playerName(node.player) + " " + trText("captureMessage") + " " + movePreview.captured
         }
+        finishMoveTurn(node)
+    }
+
+    function passMove() {
+        if (gameFinished)
+            return
+
+        var parent = currentNode()
+        if (!parent)
+            return
+
+        var key = passKey()
+        noteBoardOperationDuringGenmove()
+        for (var i = 0; i < parent.children.length; ++i) {
+            var child = nodeById(parent.children[i])
+            if (child && child.isPass) {
+                gotoNode(child.id)
+                return
+            }
+        }
+
+        var node = {
+            "id": nextNodeId,
+            "parent": currentNodeId,
+            "children": [],
+            "x": -1,
+            "y": -1,
+            "z": -1,
+            "key": key,
+            "player": currentPlayer,
+            "moveNumber": parent.moveNumber + 1,
+            "isPass": true
+        }
+        writeKoLocToNode(node, emptyKoLoc())
+
+        parent.children.push(node.id)
+        gameNodes.push(node)
+        gameNodes = gameNodes.slice()
+        nextNodeId += 1
+        currentNodeId = node.id
+        rebuildPositionFromNode(currentNodeId)
+        rebuildTreeLayout()
+        gameDirty = true
+        clearHover(true)
+        statusMode = "message"
+        statusMessage = playerName(node.player) + " " + trText("passMessage")
+        finishMoveTurn(node)
+    }
+
+    function finishMoveTurn(node) {
+        if (applyingGeneratedMove)
+            markCurrentPositionSyncedToEngine()
+        checkGameOverAfterMove(node)
+        if (!gameFinished)
+            requestAiMoveIfNeeded()
+    }
+
+    function winnerText(player) {
+        if (player === 1)
+            return trText("blackWins")
+        if (player === 2)
+            return trText("whiteWins")
+        return trText("drawGame")
+    }
+
+    function gameOverDialogText() {
+        if (!gameFinished)
+            return ""
+        return winnerText(gameWinner) + "\n" + gameOverReason
+    }
+
+    function finishGame(winner, reason) {
+        gameFinished = true
+        gameWinner = winner
+        gameOverReason = reason
+        if (genmoveInFlight && !applyingGeneratedMove)
+            discardActiveGenmove = true
+        else
+            genmoveInFlight = false
+        if (engineController && engineController.running && !genmoveInFlight)
+            engineController.sendCommand("stop")
+        statusMode = "message"
+        statusMessage = winnerText(winner) + " - " + reason
+        gameOverDialog.open()
+    }
+
+    function doublePassWinner() {
+        var blackScore = blackCaptures
+        var whiteScore = whiteCaptures + komi
+        if (blackScore > whiteScore)
+            return 1
+        if (whiteScore > blackScore)
+            return 2
+        return 0
+    }
+
+    function checkGameOverAfterMove(node) {
+        if (!node || gameFinished)
+            return
+
+        if (gameRuleMode === gameRuleGo && node.isPass) {
+            var parent = nodeById(node.parent)
+            if (parent && parent.isPass)
+                finishGame(doublePassWinner(), trText("gameOverDoublePass"))
+            return
+        }
+
+        if (gameRuleMode === gameRuleGomoku && !node.isPass && gomokuWinLineItems.length > 0)
+            finishGame(node.player, trText("gameOverFive"))
     }
 
     function undoMove() {
@@ -2825,6 +3295,8 @@ ApplicationWindow {
         if (!parent)
             return
 
+        noteBoardOperationDuringGenmove()
+
         var removeMap = ({})
         collectSubtreeIds(node.id, removeMap)
 
@@ -2857,6 +3329,8 @@ ApplicationWindow {
     function gotoNode(id) {
         if (!nodeById(id))
             return
+        if (id !== currentNodeId)
+            noteBoardOperationDuringGenmove()
         currentNodeId = id
         rebuildPositionFromNode(currentNodeId)
         rebuildTreeLayout()
@@ -2876,13 +3350,23 @@ ApplicationWindow {
         return String(currentMoveNumberValue())
     }
 
+    function maxMoveNumberValue() {
+        var maxMove = 0
+        for (var i = 0; i < gameNodes.length; ++i) {
+            var node = gameNodes[i]
+            if (node)
+                maxMove = Math.max(maxMove, node.moveNumber)
+        }
+        return maxMove
+    }
+
     function mainChildOf(node) {
         var children = node ? (node.children || []) : []
         return children.length > 0 ? nodeById(children[0]) : null
     }
 
     function gotoMoveNumber(value) {
-        var target = Math.round(clamp(isNaN(value) ? 0 : value, 0, boardPointCount()))
+        var target = Math.round(clamp(isNaN(value) ? 0 : value, 0, maxMoveNumberValue()))
         var node = currentNode() || nodeById(0)
         if (!node)
             return
@@ -2943,6 +3427,7 @@ ApplicationWindow {
         }
 
         if (changed) {
+            noteBoardOperationDuringGenmove()
             gameNodes = gameNodes.slice()
             rebuildTreeLayout()
             gameDirty = true
@@ -2965,6 +3450,25 @@ ApplicationWindow {
         engineSyncedBoardSignature = ""
         engineSyncedKomiCommand = ""
         engineNeedsFullSync = true
+    }
+
+    function markCurrentPositionSyncedToEngine() {
+        if (!engineController || !engineController.running)
+            return
+
+        var path = nodePath(currentNodeId)
+        engineSyncedNodeIds = enginePathIds(path)
+        engineSyncedBoardSignature = engineBoardSignature()
+        engineSyncedKomiCommand = engineKomiCommand()
+        engineNeedsFullSync = false
+    }
+
+    function noteBoardOperationDuringGenmove() {
+        if (!genmoveInFlight || applyingGeneratedMove)
+            return
+
+        discardActiveGenmove = true
+        resetEngineSyncState()
     }
 
     function engineKomiCommand() {
@@ -3052,7 +3556,131 @@ ApplicationWindow {
         return engineIncrementalSyncCommands(path, signature)
     }
 
+    function aiShouldMove() {
+        if (gameFinished || analysisModeActive())
+            return false
+        if (playMode === playModeAiSelf)
+            return true
+        if (playMode === playModeAiBlack)
+            return currentPlayer === 1
+        if (playMode === playModeAiWhite)
+            return currentPlayer === 2
+        return false
+    }
+
+    function timeSettingsCommand() {
+        var seconds = Math.max(0.1, Number(secondsPerMove))
+        if (isNaN(seconds))
+            seconds = 5.0
+        return "time_settings 0 " + seconds.toFixed(1) + " 1"
+    }
+
+    function genmoveCommand() {
+        var commandName = useFlattened2DCoordinates ? "genmove" : "genmove3d"
+        return commandName + " " + (currentPlayer === 1 ? "B" : "W")
+    }
+
+    function requestAiMoveIfNeeded() {
+        if (!aiShouldMove() || genmoveInFlight)
+            return
+        if (!engineReadyForPlayMode()) {
+            statusMode = "message"
+            statusMessage = engineStatusText()
+            return
+        }
+
+        clearHover(true)
+        clearEngineCandidates()
+        genmoveInFlight = true
+        discardActiveGenmove = false
+        genmovePlayer = currentPlayer
+        genmoveRequestSerial += 1
+        activeGenmoveRequestId = genmoveRequestSerial
+        statusMode = "message"
+        statusMessage = engineThinkingText()
+        engineController.requestMove(engineSyncCommands(), timeSettingsCommand(), genmoveCommand(), activeGenmoveRequestId)
+    }
+
+    function applyGeneratedMove(requestId, moveText, ok, rawLine) {
+        if (requestId !== activeGenmoveRequestId)
+            return
+
+        var discardMove = discardActiveGenmove
+        genmoveInFlight = false
+        discardActiveGenmove = false
+        activeGenmoveRequestId = 0
+        genmovePlayer = 0
+        if (discardMove) {
+            clearEngineCandidates()
+            if (analysisModeActive())
+                scheduleAutoAnalysis()
+            else if (!gameFinished)
+                requestAiMoveIfNeeded()
+            return
+        }
+
+        if (analysisModeActive() || gameFinished)
+            return
+
+        if (!ok) {
+            statusMode = "message"
+            statusMessage = rawLine
+            setPlayMode(playModeAnalysis)
+            return
+        }
+
+        var move = String(moveText).trim()
+        var lower = move.toLowerCase()
+        if (lower === "" || lower === "pass") {
+            var beforePassNodeId = currentNodeId
+            applyingGeneratedMove = true
+            try {
+                passMove()
+                if (currentNodeId !== beforePassNodeId)
+                    markCurrentPositionSyncedToEngine()
+                else
+                    resetEngineSyncState()
+            } finally {
+                applyingGeneratedMove = false
+            }
+            if (!gameFinished && !genmoveInFlight)
+                requestAiMoveIfNeeded()
+            return
+        }
+        if (lower === "resign") {
+            finishGame(currentPlayer === 1 ? 2 : 1, "resign")
+            return
+        }
+
+        var point = parseEngineCoordinate(move)
+        if (!point) {
+            statusMode = "message"
+            statusMessage = trText("coordinateInvalid") + ": " + move
+            setPlayMode(playModeAnalysis)
+            return
+        }
+
+        setSelectedPoint(point.x, point.y, point.z, true)
+        var beforeMoveNodeId = currentNodeId
+        applyingGeneratedMove = true
+        try {
+            placeStone(point.x, point.y, point.z)
+            if (currentNodeId !== beforeMoveNodeId)
+                markCurrentPositionSyncedToEngine()
+            else
+                resetEngineSyncState()
+        } finally {
+            applyingGeneratedMove = false
+        }
+        if (!gameFinished && !genmoveInFlight)
+            requestAiMoveIfNeeded()
+    }
+
     function scheduleAutoAnalysis() {
+        if (!analysisModeActive())
+            return
+        if (genmoveInFlight)
+            return
         if (!appReady || !engineAutoAnalyze || enginePaused)
             return
         if (engineController && engineController.failed)
@@ -3061,6 +3689,14 @@ ApplicationWindow {
     }
 
     function requestEngineAnalysis(force) {
+        if (!analysisModeActive())
+            return
+        if (genmoveInFlight) {
+            noteBoardOperationDuringGenmove()
+            statusMode = "message"
+            statusMessage = engineThinkingText()
+            return
+        }
         if (!engineController)
             return
         if (engineController.failed && !force)
@@ -3124,10 +3760,25 @@ ApplicationWindow {
     }
 
     function toggleEnginePause() {
+        if (!analysisModeActive()) {
+            stopGameAndReturnToAnalysis()
+            return
+        }
         if (enginePaused)
             resumeEngineAnalysis()
         else
             pauseEngineAnalysis()
+    }
+
+    function stopGameAndReturnToAnalysis() {
+        noteBoardOperationDuringGenmove()
+        gameFinished = false
+        if (!genmoveInFlight && engineController && engineController.running)
+            engineController.sendCommand("stop")
+        playMode = playModeAnalysis
+        statusMode = "message"
+        statusMessage = trText("gameStopped")
+        scheduleAutoAnalysis()
     }
 
     function playBestEngineMove() {
@@ -3188,9 +3839,26 @@ ApplicationWindow {
     }
 
     function rebuildEngineCommunicationVisibleLog() {
+        var shouldFollow = engineCommunicationDialog.logFollowsTail
+        var previousContentY = engineCommunicationList ? engineCommunicationList.contentY : 0
+        engineCommunicationDialog.rebuildingLog = true
         engineCommunicationVisibleLogModel.clear()
         for (var i = 0; i < engineCommunicationLogModel.count; ++i)
             appendEngineCommunicationVisibleItem(engineCommunicationLogModel.get(i))
+        engineCommunicationDialog.rebuildingLog = false
+        if (shouldFollow) {
+            engineCommunicationDialog.logFollowsTail = true
+            engineCommunicationDialog.queueScrollLogToEnd()
+        } else {
+            engineCommunicationDialog.logFollowsTail = false
+            Qt.callLater(function() {
+                if (!engineCommunicationList)
+                    return
+                var maxY = Math.max(0, engineCommunicationList.contentHeight - engineCommunicationList.height)
+                engineCommunicationList.contentY = Math.min(previousContentY, maxY)
+                engineCommunicationDialog.logFollowsTail = engineCommunicationDialog.logAtTail()
+            })
+        }
     }
 
     function appendEngineCommunication(stream, line) {
@@ -3220,6 +3888,13 @@ ApplicationWindow {
         return "#9ee493"
     }
 
+    function engineThinkingText() {
+        var player = genmovePlayer !== 0 ? genmovePlayer : currentPlayer
+        if (language === "zh")
+            return trText("engineThinking") + "（" + playerShortName(player) + "）"
+        return trText("engineThinking") + " (" + playerShortName(player) + ")"
+    }
+
     function engineStatusText() {
         if (!engineController)
             return trText("engineNotStarted")
@@ -3238,6 +3913,10 @@ ApplicationWindow {
     }
 
     function engineStateText() {
+        if (!analysisModeActive())
+            return genmoveInFlight ? engineThinkingText() : engineStatusText()
+        if (genmoveInFlight)
+            return engineThinkingText()
         if (engineController && engineController.failed)
             return trText("engineNoEngineMode")
         if (!engineController || (engineController && !engineController.running && !engineLoading))
@@ -3301,6 +3980,10 @@ ApplicationWindow {
     }
 
     function engineWinratePlaceholderText() {
+        if (!analysisModeActive())
+            return genmoveInFlight ? engineThinkingText() : ""
+        if (genmoveInFlight)
+            return engineThinkingText()
         if (engineController && !engineController.failed && !enginePaused
                 && (engineLoading || (engineController.running && !engineController.ready)))
             return trText("engineLoading")
@@ -3643,7 +4326,10 @@ ApplicationWindow {
     }
 
     function canPickPoint(x, y, z) {
-        return pointInBoard(x, y, z) && stoneAt(x, y, z) === 0 && !isClipped(x, y, z)
+        return pointInBoard(x, y, z)
+               && stoneAt(x, y, z) === 0
+               && pointIsLegal(x, y, z)
+               && !isClipped(x, y, z)
     }
 
     function clampCoordinateInput(text, size) {
@@ -3676,12 +4362,14 @@ ApplicationWindow {
         hoverKey = keyFor(nextX, nextY, nextZ)
         if (!pointIsLegal(nextX, nextY, nextZ)) {
             statusMode = stoneAt(nextX, nextY, nextZ) !== 0 ? "occupied" : "message"
-            statusMessage = trText("suicideMove") + ": " + coordinateText(nextX, nextY, nextZ)
+            statusMessage = illegalPointMessage(nextX, nextY, nextZ, "")
             statusX = nextX
             statusY = nextY
             statusZ = nextZ
         } else if (statusMode === "occupied"
-                   || (statusMode === "message" && statusMessage.indexOf(trText("suicideMove")) === 0)) {
+                   || (statusMode === "message"
+                       && (statusMessage.indexOf(trText("suicideMove")) === 0
+                           || statusMessage.indexOf(trText("koMove")) === 0))) {
             statusMode = "turn"
         }
         return true
@@ -3738,7 +4426,8 @@ ApplicationWindow {
 
     function sgfMoveNode(node) {
         var color = node.player === 1 ? "B" : "W"
-        return color + "[" + sgfCoordinateText(node.x, node.y, node.z) + "]"
+        var coordinate = node.isPass ? "" : sgfCoordinateText(node.x, node.y, node.z)
+        return color + "[" + coordinate + "]"
                + "MN[" + node.moveNumber + "]"
     }
 
@@ -3841,7 +4530,9 @@ ApplicationWindow {
         var maxZ = -1
         var parseError = ""
         var nodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
-                       "key": "", "player": 0, "moveNumber": 0 }]
+                       "key": "", "player": 0, "moveNumber": 0,
+                       "isPass": false,
+                       "koLocKey": "", "koLocX": -1, "koLocY": -1, "koLocZ": -1 }]
         var nextId = 1
 
         function fail(message) {
@@ -3974,8 +4665,8 @@ ApplicationWindow {
             }
 
             var coordinate = String(value).trim().toLowerCase()
-            if (coordinate.length === 0)
-                return null
+            if (coordinate.length === 0 || coordinate === "pass")
+                return { "x": -1, "y": -1, "z": -1, "player": player, "isPass": true }
             if (coordinate.length < 3) {
                 fail("Expected 3D coordinate: " + value + ".")
                 return null
@@ -3993,7 +4684,7 @@ ApplicationWindow {
             maxX = Math.max(maxX, x)
             maxY = Math.max(maxY, y)
             maxZ = Math.max(maxZ, z)
-            return { "x": x, "y": y, "z": z, "player": player }
+            return { "x": x, "y": y, "z": z, "player": player, "isPass": false }
         }
 
         function appendParsedNode(parentId, move) {
@@ -4012,9 +4703,14 @@ ApplicationWindow {
                 "x": move.x,
                 "y": move.y,
                 "z": move.z,
-                "key": keyFor(move.x, move.y, move.z),
+                "key": move.isPass ? passKey() : keyFor(move.x, move.y, move.z),
                 "player": move.player,
-                "moveNumber": parent.moveNumber + 1
+                "moveNumber": parent.moveNumber + 1,
+                "isPass": move.isPass === true,
+                "koLocKey": "",
+                "koLocX": -1,
+                "koLocY": -1,
+                "koLocZ": -1
             }
             parent.children.push(id)
             nodes[id] = node
@@ -4075,6 +4771,7 @@ ApplicationWindow {
     }
 
     function applyParsedSgf(parsed, url) {
+        noteBoardOperationDuringGenmove()
         resetEngineSyncState()
         gameRuleMode = parsed.ruleMode === undefined ? gameRuleMode : parsed.ruleMode
         setBoardDimensions(parsed.boardSizeX, parsed.boardSizeY, parsed.boardSizeZ, false)
@@ -4195,10 +4892,15 @@ ApplicationWindow {
                 "radius": radius,
                 "player": node.player,
                 "moveNumber": node.moveNumber,
-                "coordinate": node.id === 0 ? trText("rootMove") : coordinateText(node.x, node.y, node.z),
+                "isPass": node.isPass === true,
+                "coordinate": node.id === 0
+                              ? trText("rootMove")
+                              : node.isPass
+                                ? trText("passMove")
+                                : coordinateText(node.x, node.y, node.z),
                 "current": node.id === currentNodeId,
                 "currentPath": currentPathMap[node.id] === true,
-                "label": node.moveNumber === 0 ? "0" : String(node.moveNumber)
+                "label": node.moveNumber === 0 ? "0" : node.isPass ? "P" : String(node.moveNumber)
             }
             nodes.push(treeNode)
             nodeMap[node.id] = treeNode
@@ -4384,7 +5086,9 @@ ApplicationWindow {
 
     function focusCameraOnPreviousMove() {
         var node = currentNode()
-        if (!node || node.moveNumber <= 1) {
+        while (node && node.moveNumber > 0 && node.isPass)
+            node = nodeById(node.parent)
+        if (!node || node.moveNumber <= 0) {
             cameraTarget = Qt.vector3d(0, 0, 0)
             refreshCamera()
             return
@@ -4516,6 +5220,11 @@ ApplicationWindow {
     function handleBoardClickFromMouse(x, y) {
         var point = pointFromMouse(x, y)
         if (!moveClickConfirm && selectedPointLocked) {
+            if (point && hoverKey === keyFor(point.x, point.y, point.z) && selectedPointPlayable()) {
+                selectedPointLocked = false
+                placeStone(point.x, point.y, point.z)
+                return true
+            }
             clearHover(true)
             return true
         }
@@ -4565,6 +5274,12 @@ ApplicationWindow {
         }
 
         function onCandidatesChanged() {
+            if (!root.analysisModeActive()) {
+                engineCandidates = []
+                engineCandidateRevision = engineController.candidateRevision
+                rebuildEngineCandidateItems()
+                return
+            }
             engineLoading = false
             engineCandidates = engineController.candidates
             engineCandidateRevision = engineController.candidateRevision
@@ -4576,14 +5291,34 @@ ApplicationWindow {
             }
         }
 
+        function onMoveGenerated(requestId, move, ok, rawLine) {
+            root.applyGeneratedMove(requestId, move, ok, rawLine)
+        }
+
         function onRunningChanged() {
             if (engineController.running) {
                 engineLoading = false
             } else {
                 resetEngineSyncState()
+                genmoveInFlight = false
+                discardActiveGenmove = false
+                activeGenmoveRequestId = 0
+                genmovePlayer = 0
+                if (!analysisModeActive())
+                    playMode = playModeAnalysis
                 engineLoading = false
                 statusMode = "message"
                 statusMessage = engineStatusText()
+            }
+        }
+
+        function onReadyChanged() {
+            if (engineController.ready) {
+                engineLoading = false
+                if (analysisModeActive())
+                    scheduleAutoAnalysis()
+                else
+                    requestAiMoveIfNeeded()
             }
         }
 
@@ -4598,6 +5333,12 @@ ApplicationWindow {
         function onFailedChanged() {
             if (engineController.failed) {
                 engineLoading = false
+                genmoveInFlight = false
+                discardActiveGenmove = false
+                activeGenmoveRequestId = 0
+                genmovePlayer = 0
+                if (!analysisModeActive())
+                    playMode = playModeAnalysis
                 engineNoticeDismissed = false
                 statusMode = "message"
                 statusMessage = engineFailureMessage()

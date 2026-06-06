@@ -163,6 +163,104 @@ Rectangle {
                 mode: app.stoneColorModeWhite
                 tip: app.trText("stoneColorWhiteTip")
             }
+
+            PassButton {}
+        }
+
+        Rectangle {
+            Layout.preferredWidth: 1
+            Layout.fillHeight: true
+            Layout.topMargin: 7
+            Layout.bottomMargin: 7
+            color: "#c4cdd2"
+        }
+
+        RowLayout {
+            spacing: app.compactLayout ? 3 : 4
+
+            PlayModeButton {
+                mode: app.playModeAnalysis
+                text: app.trText("playModeAnalysis")
+            }
+
+            PlayModeButton {
+                mode: app.playModeAiBlack
+                text: app.trText("playModeAiBlack")
+            }
+
+            PlayModeButton {
+                mode: app.playModeAiWhite
+                text: app.trText("playModeAiWhite")
+            }
+
+            PlayModeButton {
+                mode: app.playModeAiSelf
+                text: app.trText("playModeAiSelf")
+            }
+        }
+
+        Label {
+            text: app.trText("secondsPerMove")
+            color: app.engineReadyForPlayMode() ? "#26333b" : "#7f8b92"
+            font.pixelSize: app.compactLayout ? 12 : 14
+            verticalAlignment: Text.AlignVCenter
+        }
+
+        Basic.TextField {
+            id: secondsField
+            enabled: app.engineReadyForPlayMode()
+            text: Number(app.secondsPerMove).toFixed(1)
+            selectByMouse: true
+            validator: DoubleValidator {
+                bottom: 0.1
+                top: 999
+                decimals: 1
+                notation: DoubleValidator.StandardNotation
+            }
+            Layout.preferredWidth: app.compactLayout ? 44 : 50
+            implicitHeight: app.compactLayout ? 28 : 32
+            leftPadding: 3
+            rightPadding: 3
+            topPadding: 0
+            bottomPadding: 1
+            color: enabled ? "#17252d" : "#7f8b92"
+            selectedTextColor: "#ffffff"
+            selectionColor: "#2e8eb0"
+            font.pixelSize: app.compactLayout ? 13 : 15
+            font.bold: true
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            background: Rectangle {
+                radius: 4
+                color: secondsField.enabled ? (secondsField.activeFocus ? "#ffffff" : "#f9fbfc") : "#e2e8eb"
+                border.color: secondsField.activeFocus ? "#2e8eb0" : "#b5c2c9"
+                border.width: secondsField.activeFocus ? 2 : 1
+            }
+
+            function applyValue() {
+                var nextValue = Number(text)
+                if (!isNaN(nextValue))
+                    app.secondsPerMove = Math.max(0.1, nextValue)
+                text = Number(app.secondsPerMove).toFixed(1)
+            }
+
+            onEditingFinished: applyValue()
+            Keys.onReturnPressed: {
+                applyValue()
+                app.focusBoardInput()
+            }
+            Keys.onEnterPressed: {
+                applyValue()
+                app.focusBoardInput()
+            }
+
+            Connections {
+                target: app
+                function onSecondsPerMoveChanged() {
+                    if (!secondsField.activeFocus)
+                        secondsField.text = Number(app.secondsPerMove).toFixed(1)
+                }
+            }
         }
 
         Item { Layout.fillWidth: true }
@@ -266,6 +364,77 @@ Rectangle {
             hoverEnabled: true
             onClicked: {
                 app.stoneColorMode = colorButton.mode
+                app.focusBoardInput()
+            }
+        }
+    }
+
+    component PassButton: Rectangle {
+        id: passButton
+
+        Layout.preferredWidth: app.compactLayout ? 44 : 52
+        Layout.preferredHeight: app.compactLayout ? 28 : 32
+        radius: 4
+        color: passMouse.pressed ? "#d5e1e8" : passMouse.containsMouse ? "#eef5f8" : "#f8fafb"
+        border.color: "#b5c2c9"
+        border.width: 1
+
+        Text {
+            anchors.centerIn: parent
+            text: app.trText("passMove")
+            color: "#26333b"
+            font.pixelSize: app.compactLayout ? 11 : 12
+            font.bold: true
+        }
+
+        ToolTip.visible: passMouse.containsMouse
+        ToolTip.text: app.trText("passMove") + " (P)"
+
+        MouseArea {
+            id: passMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: {
+                app.passMove()
+                app.focusBoardInput()
+            }
+        }
+    }
+
+    component PlayModeButton: Rectangle {
+        id: modeButton
+        property int mode: 0
+        property string text: ""
+        readonly property bool selected: app.playMode === mode
+
+        enabled: app.engineReadyForPlayMode()
+        Layout.preferredWidth: app.compactLayout ? 54 : 68
+        Layout.preferredHeight: app.compactLayout ? 28 : 32
+        radius: 4
+        opacity: enabled ? 1 : 0.48
+        color: selected ? "#d8e9f1" : modeMouse.containsMouse ? "#eef5f8" : "#f8fafb"
+        border.color: selected ? "#2e8eb0" : "#b5c2c9"
+        border.width: selected ? 2 : 1
+
+        Text {
+            anchors.centerIn: parent
+            width: parent.width - 6
+            text: modeButton.text
+            color: "#26333b"
+            font.pixelSize: app.compactLayout ? 10 : 12
+            font.bold: modeButton.selected
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+
+        MouseArea {
+            id: modeMouse
+            anchors.fill: parent
+            enabled: modeButton.enabled
+            hoverEnabled: true
+            onClicked: {
+                app.setPlayMode(modeButton.mode)
                 app.focusBoardInput()
             }
         }

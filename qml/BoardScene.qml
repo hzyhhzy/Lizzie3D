@@ -216,6 +216,53 @@ View3D {
             }
         }
 
+        Model {
+            readonly property bool clipped: app.koLocKey !== ""
+                                            && app.isClipped(app.koLocX, app.koLocY, app.koLocZ)
+            readonly property vector3d markerPosition: app.pointPosition(app.koLocX, app.koLocY, app.koLocZ)
+            readonly property real markerScale: app.stoneBillboardScale() * 1.08
+
+            source: "#Rectangle"
+            pickable: false
+            visible: app.koLocKey !== ""
+                     && app.stoneAt(app.koLocX, app.koLocY, app.koLocZ) === 0
+            position: markerPosition
+            rotation: app.stoneBillboardRotation(markerPosition)
+            scale: Qt.vector3d(markerScale, markerScale, markerScale)
+            opacity: clipped ? app.hiddenLayerOpacity() : 1
+            materials: PrincipledMaterial {
+                lighting: PrincipledMaterial.NoLighting
+                baseColor: "#ffffff"
+                baseColorMap: Texture {
+                    sourceItem: Item {
+                        width: 128
+                        height: 128
+
+                        Canvas {
+                            anchors.fill: parent
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.strokeStyle = "#ff1818"
+                                ctx.lineWidth = 18
+                                ctx.lineCap = "round"
+                                ctx.beginPath()
+                                ctx.moveTo(34, 34)
+                                ctx.lineTo(94, 94)
+                                ctx.moveTo(94, 34)
+                                ctx.lineTo(34, 94)
+                                ctx.stroke()
+                            }
+                            Component.onCompleted: requestPaint()
+                        }
+                    }
+                }
+                alphaMode: PrincipledMaterial.Mask
+                alphaCutoff: 0.04
+                cullMode: Material.NoCulling
+            }
+        }
+
         Repeater3D {
             model: app.engineCandidateItems
 

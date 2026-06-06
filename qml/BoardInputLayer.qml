@@ -130,6 +130,10 @@ Item {
             if (!event.isAutoRepeat)
                 app.playBestEngineMove()
             event.accepted = true
+        } else if (event.key === Qt.Key_P) {
+            if (!event.isAutoRepeat)
+                app.passMove()
+            event.accepted = true
         } else if (event.key === Qt.Key_Backspace) {
             if (!event.isAutoRepeat)
                 app.requestDeleteCurrentNode()
