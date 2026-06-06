@@ -17,7 +17,7 @@ Rectangle {
     readonly property real clipAxisLength: app.compactLayout ? 42 : 48
     readonly property real clipHandleScale: app.compactLayout ? 0.30 : 0.34
     readonly property real clipHandleWorldRadius: clipHandleScale * 50
-    readonly property real clipAxisRodLength: Math.max(0, (clipAxisLength - clipHandleWorldRadius - 4) * 2)
+    readonly property real clipAxisRodLength: Math.max(0, (clipAxisLength - clipHandleWorldRadius) * 2)
 
     anchors.right: branchPanelItem.left
     anchors.rightMargin: app.panelGap
@@ -44,7 +44,7 @@ Rectangle {
             Layout.fillWidth: true
 
             Label {
-                text: app.trText("clipLayers")
+                text: app.trText("viewAndClipLayers")
                 color: "#17212a"
                 font.pixelSize: app.compactLayout ? 16 : 18
                 font.bold: true
@@ -52,8 +52,19 @@ Rectangle {
             }
 
             Button {
-                text: app.trText("reset")
-                Layout.preferredWidth: app.compactLayout ? 56 : 62
+                text: app.trText("resetView")
+                Layout.preferredWidth: app.compactLayout ? 72 : 82
+                font.pixelSize: app.compactLayout ? 11 : 12
+                onClicked: {
+                    app.resetCamera()
+                    app.focusBoardInput()
+                }
+            }
+
+            Button {
+                text: app.trText("resetClip")
+                Layout.preferredWidth: app.compactLayout ? 72 : 82
+                font.pixelSize: app.compactLayout ? 11 : 12
                 onClicked: {
                     app.resetClipCounts()
                     app.focusBoardInput()
@@ -226,6 +237,8 @@ Rectangle {
 
                 onReleased: function(mouse) {
                     clipPanel.hoverClipAxis = pickedAxis(mouse.x, mouse.y)
+                    if (!clipPanel.dragMoved && clipPanel.hoverClipAxis !== "")
+                        app.alignCameraToAxis(clipPanel.hoverClipAxis)
                     mouse.accepted = true
                 }
 

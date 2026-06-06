@@ -2,9 +2,9 @@
 
 # [中文版](README.zh-CN.md)
 
-Lizzie3D is an experimental Qt 6 desktop interface for 3D gomoku analysis. It focuses on a clear, navigable 3D board, branch-tree review, clipping tools, and future integration with external AI engines.
+Lizzie3D is an early-stage Qt 6 desktop interface for 3D Go and 3D Gomoku. It provides a navigable 3D board, Lizzie-style review controls, SGF support, rule-aware move input, and experimental external AI engine analysis.
 
-The project is still early. It can display and edit a 3D move tree, but it does not yet connect to an AI engine and does not implement win/loss rule adjudication.
+The project is still not complete. Engine integration, UI polish, SGF compatibility, and analysis workflows are actively evolving.
 
 ![Lizzie3D main window](docs/images/lizzie3d-main-window.png)
 
@@ -12,36 +12,38 @@ The project is still early. It can display and edit a 3D move tree, but it does 
 
 - 3D board rendered with Qt Quick 3D.
 - Configurable cuboid board dimensions from 1x1x1 to 19x19x19.
-- Perspective camera with keyboard and mouse navigation.
+- Perspective camera with mouse and keyboard navigation.
 - Camera-relative movement with `W/A/S/D` and `Q/E`.
-- Layer clipping from six directions, with a rotatable six-axis clip control and keyboard shortcuts.
-- Axis gizmo for aligning the camera; dragging inside either axis panel rotates the camera.
+- Six-direction layer clipping with a rotatable "View and clip" control.
+- Clickable clip-axis balls for camera alignment.
 - Coordinate labels using `Aa1`-style 3D coordinates.
-- Move placement, deletion, branch navigation, and main-branch selection.
-- Lizzie-style branch tree panel.
+- 1-based coordinate input panel with step buttons and click-to-confirm move placement.
+- Move placement, deletion, branch navigation, main-branch selection, and full board clearing.
+- Lizzie-style branch tree panel with horizontal and vertical scrolling.
 - SGF import and export for the current game tree, including `SZ[x:y:z]` board dimensions.
-- Stone move-number display modes.
-- Chinese and English UI, with Chinese as the default language.
+- Bilingual UI, with Chinese as the default language.
 - Rendering optimizations for larger boards, including line meshes and math-based picking.
 
-## Current Status
+## Rules
 
-Implemented:
+Lizzie3D currently supports two rule modes:
 
-- 3D board interaction.
-- Local game-tree editing.
-- Basic SGF loading and saving.
-- Bilingual UI text.
-- Visual settings for stones, grid, clipping, lighting, and move numbers.
+- **3D Go**: captures are handled with 6-neighbor liberties. Illegal self-capture points are marked red and cannot be played.
+- **3D Gomoku**: five-in-a-row is detected in 3D directions and marked with a red pillar. Play can continue after a line is found.
 
-Not implemented yet:
+Changing rule mode clears the board. If the current game has unsaved changes, Lizzie3D asks whether to save the SGF first.
 
-- AI engine protocol integration.
-- AI candidate-move display.
-- Rule checking and win/loss detection.
-- Full SGF compatibility testing with external tools.
+## Engine Analysis
 
-## Requirements
+Lizzie3D includes experimental GTP-style engine integration. It can start an external engine, replay the current position, request `kata-analyze 50`, and show the best candidate move as a light-blue marker with a win-rate label.
+
+For engines that expose a flattened 2D protocol for 3D boards, Lizzie3D can map a 3D board into 2D layers. Native 3D command names are also scaffolded for future engines.
+
+This part is still rough and currently assumes a local engine command configured in the app.
+
+## Build
+
+Requirements:
 
 - Windows.
 - CMake 3.24 or newer.
@@ -53,10 +55,6 @@ The included scripts currently expect Qt at:
 ```powershell
 .tools\Qt\6.10.3\msvc2022_64
 ```
-
-If your Qt installation is somewhere else, edit `scripts/build.ps1` and update `$QtDir`, or use the manual CMake commands below.
-
-## Build
 
 Using the included script:
 
@@ -88,15 +86,16 @@ C:\Qt\6.10.3\msvc2022_64\bin\windeployqt.exe --qmldir qml build\lizzie3d\Release
 - `W/S`: move the camera target up/down relative to the current camera view.
 - `A/D`: move the camera target left/right relative to the current camera view.
 - `Q/E`: move the camera forward/backward.
-- `X/Z`: decrease/increase the clipping layers for the currently facing axis.
+- `X/Z`: decrease/increase clip layers for the currently facing axis.
 - Arrow left/right: rotate the camera horizontally.
-- `Space`: reset the camera.
+- `Space`: pause/resume engine analysis.
+- `,`: play the current engine best move.
 - `Ctrl+O`: open an SGF file.
 - `Ctrl+S`: save the current game tree as SGF.
 - `Ctrl+I`: set board dimensions.
 - `Backspace`: delete the current node.
 - `M`: cycle move-number display modes.
-- Left-drag on the board or either six-axis panel: rotate the camera.
+- Left-drag on the board or clip/view panel: rotate the camera.
 - Right-drag or middle-drag on the board: pan the camera target.
 - Mouse wheel on the board: zoom.
 - Mouse wheel over a clip-axis circle: adjust that clip direction.
@@ -112,6 +111,8 @@ C:\Qt\6.10.3\msvc2022_64\bin\windeployqt.exe --qmldir qml build\lizzie3d\Release
 |   +-- BoardInputLayer.qml
 |   +-- BranchPanel.qml
 |   +-- ClipPanel.qml
+|   +-- AnalysisToolbar.qml
+|   +-- CoordinateInputPanel.qml
 |   +-- ...
 +-- scripts/
 |   +-- build.ps1
@@ -119,12 +120,8 @@ C:\Qt\6.10.3\msvc2022_64\bin\windeployqt.exe --qmldir qml build\lizzie3d\Release
 +-- src/
     +-- main.cpp
     +-- fileio.cpp
-    +-- fileio.h
+    +-- enginecontroller.cpp
 ```
-
-## Notes
-
-Local toolchains, build outputs, logs, and deployed binaries are ignored by Git. The repository is intended to contain source code and project files only.
 
 ## License
 

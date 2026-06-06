@@ -5,11 +5,13 @@ project(lizzie3d LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Quick3D)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Quick3D)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(lizzie3d
+    src/enginecontroller.cpp
+    src/enginecontroller.h
     src/main.cpp
     src/fileio.cpp
     src/fileio.h
@@ -20,11 +22,13 @@ qt_add_qml_module(lizzie3d
     VERSION 1.0
     QML_FILES
         qml/AxisGizmoPanel.qml
+        qml/AnalysisToolbar.qml
         qml/BoardInputLayer.qml
         qml/BoardScene.qml
         qml/BranchPanel.qml
         qml/ClipPanel.qml
         qml/CommandToolbar.qml
+        qml/CoordinateInputPanel.qml
         qml/HoverCoordinateBadge.qml
         qml/InfoPanel.qml
         qml/Main.qml
@@ -33,6 +37,7 @@ qt_add_qml_module(lizzie3d
 
 target_link_libraries(lizzie3d
     PRIVATE
+        Qt6::Core
         Qt6::Quick
         Qt6::Quick3D
 )

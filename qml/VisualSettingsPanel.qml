@@ -166,6 +166,91 @@ Rectangle {
         }
 
         Label {
+            text: app.trText("engine")
+            color: "#17212a"
+            font.pixelSize: app.compactLayout ? 14 : 16
+            font.bold: true
+            Layout.fillWidth: true
+        }
+
+        Label {
+            text: app.trText("engineCommand")
+            color: "#2f414c"
+            font.pixelSize: app.compactLayout ? 12 : 14
+            Layout.fillWidth: true
+        }
+
+        TextField {
+            id: engineCommandField
+            text: engineController.command
+            selectByMouse: true
+            font.pixelSize: app.compactLayout ? 10 : 11
+            Layout.fillWidth: true
+            function commitCommand() {
+                if (engineController.command !== text)
+                    engineController.command = text
+            }
+            onAccepted: {
+                commitCommand()
+                app.focusBoardInput()
+            }
+            onEditingFinished: commitCommand()
+
+            Connections {
+                target: engineController
+                function onCommandChanged() {
+                    if (!engineCommandField.activeFocus)
+                        engineCommandField.text = engineController.command
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+
+            Button {
+                text: app.trText("engineStart")
+                Layout.fillWidth: true
+                onClicked: {
+                    engineCommandField.commitCommand()
+                    app.requestEngineAnalysis(true)
+                    app.focusBoardInput()
+                }
+            }
+
+            Button {
+                text: app.trText("engineStop")
+                Layout.fillWidth: true
+                enabled: engineController.running
+                onClicked: {
+                    app.pauseEngineAnalysis()
+                    app.focusBoardInput()
+                }
+            }
+
+            Button {
+                text: app.trText("engineAnalyze")
+                Layout.fillWidth: true
+                onClicked: {
+                    engineCommandField.commitCommand()
+                    app.requestEngineAnalysis(true)
+                    app.focusBoardInput()
+                }
+            }
+        }
+
+        CheckBox {
+            text: app.trText("engineUseFlattened2D")
+            checked: app.useFlattened2DCoordinates
+            font.pixelSize: app.compactLayout ? 11 : 13
+            Layout.fillWidth: true
+            onToggled: {
+                app.focusBoardInput()
+                app.useFlattened2DCoordinates = checked
+            }
+        }
+
+        Label {
             text: app.trText("stoneSize") + "  " + Math.round(app.stoneScale * 100) + "%"
             color: "#2f414c"
             font.pixelSize: app.compactLayout ? 12 : 14

@@ -90,12 +90,54 @@ ApplicationWindow {
             "moveNumberHidden": "隐藏数字",
             "stoneLighting": "棋子打光",
             "lightFollowsCamera": "灯光跟随镜头",
+            "engine": "引擎",
+            "engineCommand": "启动指令",
+            "engineStart": "启动",
+            "engineStop": "停止",
+            "engineAnalyze": "分析",
+            "engineStatus": "引擎状态",
+            "engineNotStarted": "未启动",
+            "engineRunning": "运行中",
+            "engineCandidates": "选点",
+            "engineUseFlattened2D": "使用二维换算坐标",
+            "engineBestMove": "首选",
+            "engineAnalyzeRequested": "已请求引擎分析",
+            "engineNoCandidates": "暂无选点",
+            "enginePaused": "分析暂停",
+            "engineLoading": "引擎加载中",
+            "engineAutoAnalyzing": "自动分析中",
+            "komi": "贴目",
+            "stoneColor": "落子",
+            "stoneColorAuto": "黑白交替",
+            "stoneColorBlack": "黑子",
+            "stoneColorWhite": "白子",
+            "captured": "提子",
+            "coordinateShort": "坐标",
+            "playMove": "落子",
+            "coordinateInvalid": "坐标无效",
+            "moveClickConfirm": "落子双击确认",
+            "viewAndClipLayers": "视图与裁剪层",
+            "resetView": "重置视图",
+            "resetClip": "重置裁剪",
+            "stoneColorAutoTip": "黑白交替",
+            "stoneColorBlackTip": "黑子",
+            "stoneColorWhiteTip": "白子",
+            "gameRule": "规则",
+            "gameRuleGo": "围棋",
+            "gameRuleGomoku": "五子棋",
+            "ruleChangeTitle": "切换规则",
+            "confirmRuleChangeSave": "切换规则会清空当前棋盘。是否先保存棋谱？",
+            "ruleChanged": "已切换规则",
+            "suicideMove": "禁入点",
+            "captureMessage": "提子",
             "helpKeyMoveLateral": "W/S：沿当前视角上下移动",
             "helpKeyMoveSide": "A/D：沿当前视角左右移动",
             "helpKeyMoveDepth": "Q/E：沿当前视角前后移动",
             "helpKeyClip": "X/Z：减少/增加当前面向方向的裁剪层",
             "helpKeyRotate": "←/→：水平旋转镜头",
-            "helpKeyResetCamera": "Space：重置镜头",
+            "helpKeyResetCamera": "菜单：重置镜头",
+            "helpKeyPauseEngine": "Space：暂停/继续分析",
+            "helpKeyPlayBest": ",：按引擎首选落子",
             "helpKeyDelete": "Backspace：删除当前节点",
             "helpKeyMoveLabels": "M：切换棋子手数显示",
             "helpKeyOpenSgf": "Ctrl+O：打开 SGF",
@@ -176,12 +218,54 @@ ApplicationWindow {
             "moveNumberHidden": "No numbers",
             "stoneLighting": "Light stones",
             "lightFollowsCamera": "Light follows camera",
+            "engine": "Engine",
+            "engineCommand": "Command",
+            "engineStart": "Start",
+            "engineStop": "Stop",
+            "engineAnalyze": "Analyze",
+            "engineStatus": "Engine",
+            "engineNotStarted": "Not started",
+            "engineRunning": "Running",
+            "engineCandidates": "Candidates",
+            "engineUseFlattened2D": "Use 2D mapped coordinates",
+            "engineBestMove": "Best",
+            "engineAnalyzeRequested": "Engine analysis requested",
+            "engineNoCandidates": "No candidates yet",
+            "enginePaused": "Analysis paused",
+            "engineLoading": "Loading engine",
+            "engineAutoAnalyzing": "Auto analyzing",
+            "komi": "Komi",
+            "stoneColor": "Stone",
+            "stoneColorAuto": "Alternate",
+            "stoneColorBlack": "Black",
+            "stoneColorWhite": "White",
+            "captured": "Captures",
+            "coordinateShort": "Coord",
+            "playMove": "Play",
+            "coordinateInvalid": "Invalid coordinate",
+            "moveClickConfirm": "Click twice to play",
+            "viewAndClipLayers": "View and clip",
+            "resetView": "Reset view",
+            "resetClip": "Reset clip",
+            "stoneColorAutoTip": "Alternate colors",
+            "stoneColorBlackTip": "Black",
+            "stoneColorWhiteTip": "White",
+            "gameRule": "Rule",
+            "gameRuleGo": "Go",
+            "gameRuleGomoku": "Gomoku",
+            "ruleChangeTitle": "Change rule",
+            "confirmRuleChangeSave": "Changing rules will clear the current board. Save the SGF first?",
+            "ruleChanged": "Rule changed",
+            "suicideMove": "Illegal self-capture",
+            "captureMessage": "Captures",
             "helpKeyMoveLateral": "W/S: move up/down relative to the camera",
             "helpKeyMoveSide": "A/D: move left/right relative to the camera",
             "helpKeyMoveDepth": "Q/E: move forward/back relative to the camera",
             "helpKeyClip": "X/Z: decrease/increase clip layers on the facing axis",
             "helpKeyRotate": "Left/Right: rotate the camera horizontally",
-            "helpKeyResetCamera": "Space: reset camera",
+            "helpKeyResetCamera": "Menu: reset camera",
+            "helpKeyPauseEngine": "Space: pause/resume analysis",
+            "helpKeyPlayBest": ",: play the engine best move",
             "helpKeyDelete": "Backspace: delete current node",
             "helpKeyMoveLabels": "M: switch move-number display",
             "helpKeyOpenSgf": "Ctrl+O: open SGF",
@@ -194,6 +278,7 @@ ApplicationWindow {
     property bool gameDirty: false
     property bool suppressUnsavedPrompt: false
     property bool saveDialogClosesApp: false
+    property int pendingRuleMode: -1
     property bool viewNavigationKeysBlocked: false
 
     component SavePromptButton: Basic.Button {
@@ -306,6 +391,26 @@ ApplicationWindow {
             MenuSeparator {}
 
             Menu {
+                title: root.trText("gameRule")
+
+                Action {
+                    text: root.trText("gameRuleGo")
+                    checkable: true
+                    checked: root.gameRuleMode === root.gameRuleGo
+                    onTriggered: root.requestRuleModeChange(root.gameRuleGo)
+                }
+
+                Action {
+                    text: root.trText("gameRuleGomoku")
+                    checkable: true
+                    checked: root.gameRuleMode === root.gameRuleGomoku
+                    onTriggered: root.requestRuleModeChange(root.gameRuleGomoku)
+                }
+            }
+
+            MenuSeparator {}
+
+            Menu {
                 title: root.trText("menuLanguage")
 
                 Action {
@@ -325,6 +430,36 @@ ApplicationWindow {
         }
 
         Menu {
+            title: root.trText("engine")
+
+            Action {
+                text: root.trText("engineStart")
+                enabled: !engineController.running
+                onTriggered: root.requestEngineAnalysis(true)
+            }
+
+            Action {
+                text: root.trText("engineAnalyze")
+                onTriggered: root.requestEngineAnalysis(true)
+            }
+
+            Action {
+                text: root.trText("engineStop")
+                enabled: engineController.running
+                onTriggered: root.pauseEngineAnalysis()
+            }
+
+            MenuSeparator {}
+
+            Action {
+                text: root.trText("engineUseFlattened2D")
+                checkable: true
+                checked: root.useFlattened2DCoordinates
+                onTriggered: root.useFlattened2DCoordinates = checked
+            }
+        }
+
+        Menu {
             title: root.trText("menuHelp")
 
             Action { text: root.trText("helpKeyMoveLateral"); enabled: false }
@@ -333,6 +468,8 @@ ApplicationWindow {
             Action { text: root.trText("helpKeyClip"); enabled: false }
             Action { text: root.trText("helpKeyRotate"); enabled: false }
             Action { text: root.trText("helpKeyResetCamera"); enabled: false }
+            Action { text: root.trText("helpKeyPauseEngine"); enabled: false }
+            Action { text: root.trText("helpKeyPlayBest"); enabled: false }
             Action { text: root.trText("helpKeyDelete"); enabled: false }
             Action { text: root.trText("helpKeyMoveLabels"); enabled: false }
             Action { text: root.trText("helpKeyOpenSgf"); enabled: false }
@@ -350,6 +487,7 @@ ApplicationWindow {
         onAccepted: root.saveSgfToFile(selectedFile)
         onRejected: {
             root.saveDialogClosesApp = false
+            root.pendingRuleMode = -1
             focusBoardInput()
         }
     }
@@ -361,6 +499,13 @@ ApplicationWindow {
         nameFilters: [root.trText("sgfFileFilter"), root.trText("allFileFilter")]
         onAccepted: root.loadSgfFromFile(selectedFile)
         onRejected: focusBoardInput()
+    }
+
+    Timer {
+        id: autoAnalyzeTimer
+        interval: 280
+        repeat: false
+        onTriggered: root.requestEngineAnalysis(false)
     }
 
     Dialog {
@@ -478,6 +623,107 @@ ApplicationWindow {
                     text: root.trText("cancel")
                     onClicked: {
                         unsavedSgfDialog.close()
+                        focusBoardInput()
+                    }
+                }
+            }
+        }
+    }
+
+    Basic.Dialog {
+        id: ruleChangeSaveDialog
+        modal: true
+        title: root.trText("ruleChangeTitle")
+        closePolicy: Popup.CloseOnEscape
+        padding: 18
+        width: Math.min(480, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        background: Rectangle {
+            radius: 10
+            color: "#f8fbfd"
+            border.color: "#8ea5b1"
+            border.width: 1
+        }
+
+        header: Rectangle {
+            height: 52
+            color: "#e6eff4"
+            radius: 10
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: parent.radius
+                color: parent.color
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: "#c5d4dc"
+            }
+
+            Label {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 18
+                anchors.rightMargin: 18
+                text: ruleChangeSaveDialog.title
+                color: "#14242e"
+                font.pixelSize: 17
+                font.bold: true
+                elide: Text.ElideRight
+            }
+        }
+
+        contentItem: ColumnLayout {
+            implicitWidth: 440
+            spacing: 18
+
+            Label {
+                text: root.trText("confirmRuleChangeSave")
+                color: "#17212a"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Item { Layout.fillWidth: true }
+
+                SavePromptButton {
+                    text: root.trText("save")
+                    primary: true
+                    onClicked: {
+                        ruleChangeSaveDialog.close()
+                        root.openSaveSgfDialog(false)
+                    }
+                }
+
+                SavePromptButton {
+                    text: root.trText("dontSave")
+                    onClicked: {
+                        var mode = root.pendingRuleMode
+                        ruleChangeSaveDialog.close()
+                        root.pendingRuleMode = -1
+                        root.applyRuleModeChange(mode)
+                    }
+                }
+
+                SavePromptButton {
+                    text: root.trText("cancel")
+                    onClicked: {
+                        ruleChangeSaveDialog.close()
+                        root.pendingRuleMode = -1
                         focusBoardInput()
                     }
                 }
@@ -665,13 +911,15 @@ ApplicationWindow {
     property real extent: Math.max(extentX, extentY, extentZ)
     property real halfExtent: extent / 2
     readonly property bool compactLayout: width < 1500 || height < 820
+    readonly property real analysisToolbarHeight: compactLayout ? 40 : 46
     readonly property real commandToolbarHeight: compactLayout ? 34 : 38
     readonly property real panelMargin: compactLayout ? 10 : 18
     readonly property real panelGap: compactLayout ? 8 : 14
     readonly property real panelInnerMargin: compactLayout ? 10 : 14
-    readonly property real topContentMargin: panelMargin
+    readonly property real topContentMargin: analysisToolbarHeight + panelMargin
     readonly property real bottomContentMargin: panelMargin + commandToolbarHeight + panelGap
     readonly property real infoPanelWidth: compactLayout ? 260 : 314
+    readonly property bool showAxisGizmoPanel: false
     readonly property real axisGizmoPanelSize: compactLayout ? 142 : 174
     readonly property real controlPanelWidth: compactLayout ? 270 : 300
     readonly property real branchPanelWidth: compactLayout ? 180 : 240
@@ -717,6 +965,33 @@ ApplicationWindow {
     property int treeRevision: 0
     property int currentPlayer: 1
     property int stoneCount: 0
+    readonly property int stoneColorModeAuto: 0
+    readonly property int stoneColorModeBlack: 1
+    readonly property int stoneColorModeWhite: 2
+    readonly property int gameRuleGo: 0
+    readonly property int gameRuleGomoku: 1
+    property int gameRuleMode: gameRuleGo
+    property int stoneColorMode: stoneColorModeAuto
+    property real komi: 1.0
+    property bool useFlattened2DCoordinates: true
+    property bool appReady: false
+    property bool engineAutoAnalyze: true
+    property bool enginePaused: false
+    property bool engineLoading: true
+    property var engineCandidates: []
+    property var engineCandidateItems: []
+    property int engineCandidateRevision: 0
+    property int blackCaptures: 0
+    property int whiteCaptures: 0
+    property var gomokuWinLineItems: []
+    property var legalPointMap: ({})
+    property int legalityRevision: 0
+    property int coordinateInputX: 0
+    property int coordinateInputY: 0
+    property int coordinateInputZ: 0
+    property string coordinateInputText: ""
+    property bool moveClickConfirm: true
+    property bool selectedPointLocked: false
 
     property string hoverKey: ""
     property int hoverX: -1
@@ -774,11 +1049,29 @@ ApplicationWindow {
         { "axis": "-Z", "label": "-z", "dx": 0, "dy": 0, "dz": -1, "color": "#3d73d8" }
     ]
 
+    onUseFlattened2DCoordinatesChanged: {
+        clearEngineCandidates()
+        scheduleAutoAnalysis()
+    }
+    onKomiChanged: scheduleAutoAnalysis()
+    onMoveClickConfirmChanged: {
+        if (!moveClickConfirm)
+            selectedPointLocked = false
+    }
+    onStoneColorModeChanged: {
+        currentPlayer = nextPlayerFromMode()
+        rebuildPointLegality()
+        scheduleAutoAnalysis()
+    }
     onCameraYawChanged: scheduleAxisCameraRefresh()
     onCameraPitchChanged: scheduleAxisCameraRefresh()
 
     function clamp(value, low, high) {
         return Math.max(low, Math.min(high, value))
+    }
+
+    function adjustKomi(delta) {
+        komi = Math.round((komi + delta) * 2) / 2
     }
 
     function focusBoardInput() {
@@ -823,7 +1116,9 @@ ApplicationWindow {
     }
 
     function boardInputBlocked(sourceItem, x, y) {
-        return itemContainsInputPoint(axisGizmo, sourceItem, x, y)
+        return itemContainsInputPoint(analysisToolbar, sourceItem, x, y)
+               || itemContainsInputPoint(coordinateInputPanel, sourceItem, x, y)
+               || itemContainsInputPoint(axisGizmo, sourceItem, x, y)
                || itemContainsInputPoint(infoPanel, sourceItem, x, y)
                || itemContainsInputPoint(branchPanel, sourceItem, x, y)
                || itemContainsInputPoint(visualPanel, sourceItem, x, y)
@@ -860,6 +1155,154 @@ ApplicationWindow {
         return boardSizeX * boardSizeY * boardSizeZ
     }
 
+    function flattened2DBoardWidth() {
+        return boardSizeX * Math.min(boardSizeZ, 4)
+    }
+
+    function flattened2DBoardHeight() {
+        return boardSizeY * Math.ceil(boardSizeZ / 4)
+    }
+
+    function flattened2DCoordinate(x, y, z) {
+        return {
+            "x": x + (z % 4) * boardSizeX,
+            "y": y + Math.floor(z / 4) * boardSizeY
+        }
+    }
+
+    function unflattened3DCoordinate(x, y) {
+        var layerColumn = Math.floor(x / boardSizeX)
+        var layerRow = Math.floor(y / boardSizeY)
+        var z = layerRow * 4 + layerColumn
+        return {
+            "x": x % boardSizeX,
+            "y": y % boardSizeY,
+            "z": z
+        }
+    }
+
+    function gtpAlphabetIndex(text) {
+        var alphabet = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
+        var value = 0
+        for (var i = 0; i < text.length; ++i) {
+            var digit = alphabet.indexOf(text.charAt(i).toUpperCase())
+            if (digit < 0)
+                return -1
+            if (text.length === 2)
+                value = i === 0 ? (digit + 1) * alphabet.length : value + digit
+            else
+                value = value * alphabet.length + digit
+        }
+        return value
+    }
+
+    function gtpCoordinateName(x, y, width, height) {
+        if (width > 25 || height > 25)
+            return "(" + x + "," + y + ")"
+        var alphabet = "ABCDEFGHJKLMNOPQRSTUVWXYZ"
+        return alphabet.charAt(x) + String(height - y)
+    }
+
+    function parseGtpCoordinateName(text, width, height) {
+        var value = String(text).trim()
+        if (value.toLowerCase() === "pass" || value.toLowerCase() === "resign")
+            return null
+
+        var numeric = value.match(/^\((\d+),(\d+)\)$/)
+        if (numeric)
+            return { "x": parseInt(numeric[1], 10), "y": parseInt(numeric[2], 10) }
+
+        var named = value.match(/^([A-HJ-Z]+)(\d+)$/i)
+        if (!named)
+            return null
+
+        var x = gtpAlphabetIndex(named[1])
+        var y = height - parseInt(named[2], 10)
+        if (x < 0 || y < 0 || x >= width || y >= height)
+            return null
+        return { "x": x, "y": y }
+    }
+
+    function engineCoordinateForNode(node) {
+        if (!node)
+            return ""
+        if (useFlattened2DCoordinates) {
+            var flat = flattened2DCoordinate(node.x, node.y, node.z)
+            return gtpCoordinateName(flat.x, flat.y, flattened2DBoardWidth(), flattened2DBoardHeight())
+        }
+        return sgfCoordinateText(node.x, node.y, node.z)
+    }
+
+    function parseEngineCoordinate(text) {
+        if (useFlattened2DCoordinates) {
+            var flat = parseGtpCoordinateName(text, flattened2DBoardWidth(), flattened2DBoardHeight())
+            if (!flat)
+                return null
+            var point = unflattened3DCoordinate(flat.x, flat.y)
+            if (point.x < 0 || point.x >= boardSizeX
+                    || point.y < 0 || point.y >= boardSizeY
+                    || point.z < 0 || point.z >= boardSizeZ)
+                return null
+            return point
+        }
+
+        var value = String(text).trim()
+        var sgf = value.match(/^([a-z])([a-z])([a-z])$/i)
+        if (sgf) {
+            var base = "a".charCodeAt(0)
+            return {
+                "x": sgf[1].toLowerCase().charCodeAt(0) - base,
+                "y": sgf[2].toLowerCase().charCodeAt(0) - base,
+                "z": sgf[3].toLowerCase().charCodeAt(0) - base
+            }
+        }
+
+        var label = value.match(/^([A-Z])([a-z])(\d+)$/)
+        if (!label)
+            return null
+        return {
+            "x": label[1].charCodeAt(0) - "A".charCodeAt(0),
+            "y": label[2].charCodeAt(0) - "a".charCodeAt(0),
+            "z": parseInt(label[3], 10) - 1
+        }
+    }
+
+    function candidateWinrateText(candidate) {
+        if (!candidate || candidate.winrate === undefined)
+            return ""
+        return Math.round(candidate.winrate) + "%"
+    }
+
+    function rebuildEngineCandidateItems() {
+        var items = []
+        if (engineCandidates.length > 0) {
+            var candidate = engineCandidates[0]
+            var point = parseEngineCoordinate(candidate.move)
+            if (point && stoneAt(point.x, point.y, point.z) === 0) {
+                items.push({
+                    "x": point.x,
+                    "y": point.y,
+                    "z": point.z,
+                    "key": keyFor(point.x, point.y, point.z),
+                    "position": pointPosition(point.x, point.y, point.z),
+                    "move": candidate.move,
+                    "order": candidate.order,
+                    "winrate": candidate.winrate,
+                    "winrateText": candidateWinrateText(candidate)
+                })
+            }
+        }
+        engineCandidateItems = items
+    }
+
+    function clearEngineCandidates() {
+        engineCandidates = []
+        engineCandidateItems = []
+        engineCandidateRevision += 1
+        if (engineController)
+            engineController.clearCandidates()
+    }
+
     function hiddenLayerOpacity() {
         return clamp(1 - hiddenLayerTransparency, 0, 1)
     }
@@ -873,6 +1316,37 @@ ApplicationWindow {
         stoneLightingEnabled = defaultStoneLightingEnabled
         lightFollowsCamera = defaultLightFollowsCamera
         moveNumberDisplayMode = defaultMoveNumberDisplayMode
+    }
+
+    function gameRuleText() {
+        return gameRuleMode === gameRuleGo ? trText("gameRuleGo") : trText("gameRuleGomoku")
+    }
+
+    function requestRuleModeChange(mode) {
+        if (mode === gameRuleMode)
+            return
+
+        pendingRuleMode = mode
+        if (gameDirty) {
+            ruleChangeSaveDialog.open()
+            return
+        }
+
+        pendingRuleMode = -1
+        applyRuleModeChange(mode)
+    }
+
+    function applyRuleModeChange(mode) {
+        if (mode !== gameRuleGo && mode !== gameRuleGomoku)
+            return
+
+        gameRuleMode = mode
+        clearHover(true)
+        resetGameTree()
+        gameDirty = false
+        statusMode = "message"
+        statusMessage = trText("ruleChanged") + ": " + gameRuleText()
+        focusBoardInput()
     }
 
     function rebuildBoardGeometry() {
@@ -895,6 +1369,7 @@ ApplicationWindow {
         resetGameTree()
         rebuildBoardGeometry()
         resetCamera()
+        setSelectedPoint(coordinateInputX, coordinateInputY, coordinateInputZ)
         if (markDirty !== false)
             gameDirty = true
     }
@@ -1010,11 +1485,13 @@ ApplicationWindow {
             "scale": axis === 0 ? Qt.vector3d(lengthScale, thicknessScale, thicknessScale)
                      : axis === 1 ? Qt.vector3d(thicknessScale, lengthScale, thicknessScale)
                                   : Qt.vector3d(thicknessScale, thicknessScale, lengthScale),
-            "opacity": gridLineSegmentOpacity(axis, a, b, fixed1, fixed2, true)
+            "opacity": gridLineSegmentOpacity(axis, a, b, fixed1, fixed2, true),
+            "color": selectedPointColor()
         })
     }
 
     function hoverGridRods() {
+        legalityRevision
         var data = []
         if (hoverKey === "" || hideGridLines)
             return data
@@ -1154,6 +1631,342 @@ ApplicationWindow {
         return nodeById(currentNodeId)
     }
 
+    function nextPlayerFromMode() {
+        if (stoneColorMode === stoneColorModeBlack)
+            return 1
+        if (stoneColorMode === stoneColorModeWhite)
+            return 2
+
+        var node = currentNode()
+        if (node && node.player === 1)
+            return 2
+        if (node && node.player === 2)
+            return 1
+        return 1
+    }
+
+    function neighborOffsets() {
+        return [
+            { "dx": 1, "dy": 0, "dz": 0 },
+            { "dx": -1, "dy": 0, "dz": 0 },
+            { "dx": 0, "dy": 1, "dz": 0 },
+            { "dx": 0, "dy": -1, "dz": 0 },
+            { "dx": 0, "dy": 0, "dz": 1 },
+            { "dx": 0, "dy": 0, "dz": -1 }
+        ]
+    }
+
+    function gomokuDirections() {
+        return [
+            { "dx": 1, "dy": 0, "dz": 0 },
+            { "dx": 0, "dy": 1, "dz": 0 },
+            { "dx": 0, "dy": 0, "dz": 1 },
+            { "dx": 1, "dy": 1, "dz": 0 },
+            { "dx": 1, "dy": -1, "dz": 0 },
+            { "dx": 1, "dy": 0, "dz": 1 },
+            { "dx": 1, "dy": 0, "dz": -1 },
+            { "dx": 0, "dy": 1, "dz": 1 },
+            { "dx": 0, "dy": 1, "dz": -1 },
+            { "dx": 1, "dy": 1, "dz": 1 },
+            { "dx": 1, "dy": 1, "dz": -1 },
+            { "dx": 1, "dy": -1, "dz": 1 },
+            { "dx": 1, "dy": -1, "dz": -1 }
+        ]
+    }
+
+    function stoneMapDataAt(map, x, y, z) {
+        var value = map[keyFor(x, y, z)]
+        return value === undefined ? null : value
+    }
+
+    function stoneMapPlayerAt(map, x, y, z) {
+        var value = stoneMapDataAt(map, x, y, z)
+        return value ? value.player : 0
+    }
+
+    function pointLegalInMap(map, x, y, z, player) {
+        if (!pointInBoard(x, y, z) || stoneMapPlayerAt(map, x, y, z) !== 0)
+            return false
+
+        if (gameRuleMode !== gameRuleGo)
+            return true
+
+        var item = {
+            "x": x,
+            "y": y,
+            "z": z,
+            "key": keyFor(x, y, z),
+            "player": player,
+            "moveNumber": 0,
+            "nodeId": -1,
+            "position": pointPosition(x, y, z)
+        }
+        return simulateGoMoveOnMap(cloneStoneMap(map), item).ok
+    }
+
+    function buildPointLegalityMap(map, player) {
+        var result = ({})
+        for (var y = 0; y < boardSizeY; ++y) {
+            for (var z = 0; z < boardSizeZ; ++z) {
+                for (var x = 0; x < boardSizeX; ++x)
+                    result[keyFor(x, y, z)] = pointLegalInMap(map, x, y, z, player)
+            }
+        }
+        return result
+    }
+
+    function rebuildPointLegality() {
+        legalPointMap = buildPointLegalityMap(stones, currentPlayer)
+        legalityRevision += 1
+    }
+
+    function pointIsLegal(x, y, z) {
+        legalityRevision
+        if (!pointInBoard(x, y, z))
+            return false
+        return legalPointMap[keyFor(x, y, z)] === true
+    }
+
+    function selectedPointLegal() {
+        legalityRevision
+        hoverKey
+        if (hoverKey === "")
+            return false
+        return pointIsLegal(hoverX, hoverY, hoverZ)
+    }
+
+    function selectedPointPlayable() {
+        return selectedPointLegal() && !isClipped(hoverX, hoverY, hoverZ)
+    }
+
+    function selectedPointColor() {
+        return selectedPointLegal() ? "#2fb97f" : "#e3342f"
+    }
+
+    function cloneStoneMap(map) {
+        var nextMap = ({})
+        for (var key in map) {
+            var value = map[key]
+            nextMap[key] = {
+                "x": value.x,
+                "y": value.y,
+                "z": value.z,
+                "key": value.key,
+                "player": value.player,
+                "moveNumber": value.moveNumber,
+                "nodeId": value.nodeId,
+                "position": value.position
+            }
+        }
+        return nextMap
+    }
+
+    function makeStoneItemFromNode(node) {
+        return {
+            "x": node.x,
+            "y": node.y,
+            "z": node.z,
+            "key": node.key,
+            "player": node.player,
+            "moveNumber": node.moveNumber,
+            "nodeId": node.id,
+            "position": pointPosition(node.x, node.y, node.z)
+        }
+    }
+
+    function collectGroupInMap(map, x, y, z, visited) {
+        var start = stoneMapDataAt(map, x, y, z)
+        if (!start)
+            return []
+
+        var group = []
+        var stack = [start]
+        var player = start.player
+        var offsets = neighborOffsets()
+        while (stack.length > 0) {
+            var stone = stack.pop()
+            if (visited[stone.key])
+                continue
+
+            visited[stone.key] = true
+            group.push(stone)
+            for (var i = 0; i < offsets.length; ++i) {
+                var nx = stone.x + offsets[i].dx
+                var ny = stone.y + offsets[i].dy
+                var nz = stone.z + offsets[i].dz
+                if (!pointInBoard(nx, ny, nz))
+                    continue
+
+                var neighbor = stoneMapDataAt(map, nx, ny, nz)
+                if (neighbor && neighbor.player === player && !visited[neighbor.key])
+                    stack.push(neighbor)
+            }
+        }
+        return group
+    }
+
+    function groupHasLibertyInMap(map, group) {
+        var offsets = neighborOffsets()
+        for (var i = 0; i < group.length; ++i) {
+            var stone = group[i]
+            for (var n = 0; n < offsets.length; ++n) {
+                var nx = stone.x + offsets[n].dx
+                var ny = stone.y + offsets[n].dy
+                var nz = stone.z + offsets[n].dz
+                if (pointInBoard(nx, ny, nz) && stoneMapPlayerAt(map, nx, ny, nz) === 0)
+                    return true
+            }
+        }
+        return false
+    }
+
+    function removeGroupFromMap(map, group) {
+        for (var i = 0; i < group.length; ++i)
+            delete map[group[i].key]
+    }
+
+    function simulateGoMoveOnMap(map, stoneItem) {
+        if (map[stoneItem.key] !== undefined)
+            return { "ok": false, "captured": 0, "reason": "occupied" }
+
+        map[stoneItem.key] = stoneItem
+
+        var captured = 0
+        var opponent = stoneItem.player === 1 ? 2 : 1
+        var offsets = neighborOffsets()
+        var checked = ({})
+        for (var i = 0; i < offsets.length; ++i) {
+            var nx = stoneItem.x + offsets[i].dx
+            var ny = stoneItem.y + offsets[i].dy
+            var nz = stoneItem.z + offsets[i].dz
+            var neighbor = pointInBoard(nx, ny, nz) ? stoneMapDataAt(map, nx, ny, nz) : null
+            if (!neighbor || neighbor.player !== opponent || checked[neighbor.key])
+                continue
+
+            var visited = ({})
+            var group = collectGroupInMap(map, nx, ny, nz, visited)
+            for (var g = 0; g < group.length; ++g)
+                checked[group[g].key] = true
+            if (!groupHasLibertyInMap(map, group)) {
+                captured += group.length
+                removeGroupFromMap(map, group)
+            }
+        }
+
+        var ownGroup = collectGroupInMap(map, stoneItem.x, stoneItem.y, stoneItem.z, ({}))
+        if (!groupHasLibertyInMap(map, ownGroup)) {
+            removeGroupFromMap(map, ownGroup)
+            return { "ok": false, "captured": captured, "reason": "suicide" }
+        }
+
+        return { "ok": true, "captured": captured, "reason": "" }
+    }
+
+    function previewRuleMove(x, y, z, player, moveNumber, nodeId) {
+        var item = {
+            "x": x,
+            "y": y,
+            "z": z,
+            "key": keyFor(x, y, z),
+            "player": player,
+            "moveNumber": moveNumber,
+            "nodeId": nodeId,
+            "position": pointPosition(x, y, z)
+        }
+
+        if (gameRuleMode !== gameRuleGo)
+            return { "ok": true, "captured": 0, "reason": "" }
+
+        return simulateGoMoveOnMap(cloneStoneMap(stones), item)
+    }
+
+    function applyNodeToPositionMap(map, node) {
+        var item = makeStoneItemFromNode(node)
+        if (gameRuleMode === gameRuleGo)
+            return simulateGoMoveOnMap(map, item)
+
+        if (map[item.key] !== undefined)
+            return { "ok": false, "captured": 0, "reason": "occupied" }
+
+        map[item.key] = item
+        return { "ok": true, "captured": 0, "reason": "" }
+    }
+
+    function stoneItemsFromMap(map) {
+        var items = []
+        for (var key in map)
+            items.push(map[key])
+        items.sort(function(a, b) { return a.moveNumber - b.moveNumber })
+        return items
+    }
+
+    function gomokuWinLineRotation(dx, dy, dz) {
+        var yAxis = normalizedVector(Qt.vector3d(dx, dy, dz), Qt.vector3d(0, 1, 0))
+        var helper = Math.abs(yAxis.y) < 0.9 ? Qt.vector3d(0, 1, 0) : Qt.vector3d(1, 0, 0)
+        var xAxis = normalizedVector(crossVector(helper, yAxis), Qt.vector3d(1, 0, 0))
+        var zAxis = normalizedVector(crossVector(xAxis, yAxis), Qt.vector3d(0, 0, 1))
+        return quaternionFromBasis(xAxis, yAxis, zAxis)
+    }
+
+    function buildGomokuWinLineItems(map) {
+        if (gameRuleMode !== gameRuleGomoku)
+            return []
+
+        var lines = []
+        var directions = gomokuDirections()
+        for (var key in map) {
+            var stone = map[key]
+            for (var d = 0; d < directions.length; ++d) {
+                var direction = directions[d]
+                var px = stone.x - direction.dx
+                var py = stone.y - direction.dy
+                var pz = stone.z - direction.dz
+                if (pointInBoard(px, py, pz) && stoneMapPlayerAt(map, px, py, pz) === stone.player)
+                    continue
+
+                var run = []
+                var x = stone.x
+                var y = stone.y
+                var z = stone.z
+                while (pointInBoard(x, y, z) && stoneMapPlayerAt(map, x, y, z) === stone.player) {
+                    run.push(stoneMapDataAt(map, x, y, z))
+                    x += direction.dx
+                    y += direction.dy
+                    z += direction.dz
+                }
+
+                if (run.length < 5)
+                    continue
+
+                var start = run[0]
+                var end = run[run.length - 1]
+                var startPos = pointPosition(start.x, start.y, start.z)
+                var endPos = pointPosition(end.x, end.y, end.z)
+                var dxWorld = endPos.x - startPos.x
+                var dyWorld = endPos.y - startPos.y
+                var dzWorld = endPos.z - startPos.z
+                var length = Math.sqrt(dxWorld * dxWorld + dyWorld * dyWorld + dzWorld * dzWorld) + spacing * 0.62
+                lines.push({
+                    "position": Qt.vector3d((startPos.x + endPos.x) * 0.5,
+                                            (startPos.y + endPos.y) * 0.5,
+                                            (startPos.z + endPos.z) * 0.5),
+                    "rotation": gomokuWinLineRotation(direction.dx, direction.dy, direction.dz),
+                    "scale": Qt.vector3d(spacing * 0.16 / quick3DPrimitiveDiameter,
+                                         length / quick3DPrimitiveDiameter,
+                                         spacing * 0.16 / quick3DPrimitiveDiameter),
+                    "startX": start.x,
+                    "startY": start.y,
+                    "startZ": start.z,
+                    "endX": end.x,
+                    "endY": end.y,
+                    "endZ": end.z,
+                    "player": stone.player
+                })
+            }
+        }
+        return lines
+    }
+
     function nodePath(id) {
         var path = []
         var node = nodeById(id)
@@ -1167,42 +1980,53 @@ ApplicationWindow {
     function rebuildPositionFromNode(id) {
         var path = nodePath(id)
         var nextStones = ({})
-        var nextStoneItems = []
+        var blackCaptureCount = 0
+        var whiteCaptureCount = 0
         for (var i = 0; i < path.length; ++i) {
-            var stoneItem = {
-                "x": path[i].x,
-                "y": path[i].y,
-                "z": path[i].z,
-                "key": path[i].key,
-                "player": path[i].player,
-                "moveNumber": path[i].moveNumber,
-                "nodeId": path[i].id,
-                "position": pointPosition(path[i].x, path[i].y, path[i].z)
+            var result = applyNodeToPositionMap(nextStones, path[i])
+            if (result.ok && result.captured > 0) {
+                if (path[i].player === 1)
+                    blackCaptureCount += result.captured
+                else
+                    whiteCaptureCount += result.captured
             }
-            nextStones[path[i].key] = stoneItem
-            nextStoneItems.push(stoneItem)
         }
 
         stones = nextStones
-        stoneItems = nextStoneItems
+        stoneItems = stoneItemsFromMap(nextStones)
+        blackCaptures = blackCaptureCount
+        whiteCaptures = whiteCaptureCount
+        gomokuWinLineItems = buildGomokuWinLineItems(nextStones)
         stoneCount = path.length
-        currentPlayer = stoneCount % 2 === 0 ? 1 : 2
+        currentPlayer = nextPlayerFromMode()
+        legalPointMap = buildPointLegalityMap(nextStones, currentPlayer)
+        legalityRevision += 1
         boardRevision += 1
         statusMode = "turn"
+        clearEngineCandidates()
+        scheduleAutoAnalysis()
     }
 
     function resetGameTree() {
         stones = ({})
         stoneItems = []
+        blackCaptures = 0
+        whiteCaptures = 0
+        gomokuWinLineItems = []
+        legalPointMap = ({})
         gameNodes = [{ "id": 0, "parent": -1, "children": [], "x": -1, "y": -1, "z": -1,
                        "key": "", "player": 0, "moveNumber": 0 }]
         currentNodeId = 0
         nextNodeId = 1
         stoneCount = 0
-        currentPlayer = 1
+        currentPlayer = nextPlayerFromMode()
+        legalPointMap = buildPointLegalityMap(stones, currentPlayer)
+        legalityRevision += 1
         boardRevision += 1
         statusMode = "turn"
+        clearEngineCandidates()
         rebuildTreeLayout()
+        scheduleAutoAnalysis()
     }
 
     function currentNodeText() {
@@ -1248,6 +2072,15 @@ ApplicationWindow {
             }
         }
 
+        var movePreview = previewRuleMove(x, y, z, currentPlayer, parent.moveNumber + 1, nextNodeId)
+        if (!movePreview.ok) {
+            statusMode = "message"
+            statusMessage = movePreview.reason === "suicide"
+                            ? trText("suicideMove") + ": " + coordinateText(x, y, z)
+                            : trText("occupied") + ": " + coordinateText(x, y, z)
+            return
+        }
+
         var node = {
             "id": nextNodeId,
             "parent": currentNodeId,
@@ -1268,6 +2101,11 @@ ApplicationWindow {
         rebuildPositionFromNode(currentNodeId)
         rebuildTreeLayout()
         gameDirty = true
+        clearHover(true)
+        if (gameRuleMode === gameRuleGo && movePreview.captured > 0) {
+            statusMode = "message"
+            statusMessage = playerName(node.player) + " " + trText("captureMessage") + " " + movePreview.captured
+        }
     }
 
     function undoMove() {
@@ -1440,9 +2278,132 @@ ApplicationWindow {
         }
     }
 
+    function engineBoardSizeCommands() {
+        if (useFlattened2DCoordinates) {
+            var flatWidth = flattened2DBoardWidth()
+            var flatHeight = flattened2DBoardHeight()
+            if (flatWidth === flatHeight)
+                return [ "boardsize " + flatWidth ]
+            return [ "rectangular_boardsize " + flatWidth + " " + flatHeight ]
+        }
+        return [ "boardsize3d " + boardSizeX + " " + boardSizeY + " " + boardSizeZ ]
+    }
+
+    function engineSyncCommands() {
+        var commands = [ "stop" ]
+        commands = commands.concat(engineBoardSizeCommands())
+        commands.push("komi " + Number(komi).toFixed(1))
+        commands.push("clear_board")
+
+        var path = nodePath(currentNodeId)
+        for (var i = 0; i < path.length; ++i) {
+            var node = path[i]
+            var color = node.player === 1 ? "B" : "W"
+            var commandName = useFlattened2DCoordinates ? "play" : "play3d"
+            commands.push(commandName + " " + color + " " + engineCoordinateForNode(node))
+        }
+
+        return commands
+    }
+
+    function scheduleAutoAnalysis() {
+        if (!appReady || !engineAutoAnalyze || enginePaused)
+            return
+        autoAnalyzeTimer.restart()
+    }
+
+    function requestEngineAnalysis(force) {
+        if (!engineController)
+            return
+        if (enginePaused && !force)
+            return
+
+        if (force)
+            enginePaused = false
+        engineLoading = !engineController.running
+
+        engineController.requestAnalysis(
+            engineSyncCommands(),
+            useFlattened2DCoordinates ? "kata-analyze 50" : "kata-analyze3d 50")
+        statusMode = "message"
+        statusMessage = trText("engineAnalyzeRequested")
+    }
+
+    function pauseEngineAnalysis() {
+        enginePaused = true
+        engineLoading = false
+        if (engineController && engineController.running)
+            engineController.sendCommand("stop")
+        statusMode = "message"
+        statusMessage = trText("enginePaused")
+    }
+
+    function resumeEngineAnalysis() {
+        enginePaused = false
+        requestEngineAnalysis(true)
+    }
+
+    function toggleEnginePause() {
+        if (enginePaused)
+            resumeEngineAnalysis()
+        else
+            pauseEngineAnalysis()
+    }
+
+    function playBestEngineMove() {
+        if (engineCandidateItems.length <= 0) {
+            statusMode = "message"
+            statusMessage = trText("engineNoCandidates")
+            return
+        }
+
+        var best = engineCandidateItems[0]
+        setSelectedPoint(best.x, best.y, best.z)
+        placeStone(best.x, best.y, best.z)
+    }
+
+    function engineStatusText() {
+        if (!engineController)
+            return trText("engineNotStarted")
+        if (enginePaused)
+            return trText("enginePaused")
+        if (engineLoading)
+            return trText("engineLoading")
+        var text = engineController.running ? trText("engineRunning") : trText("engineNotStarted")
+        if (engineController.lastError && engineController.lastError.length > 0)
+            text += " · " + engineController.lastError
+        return text
+    }
+
+    function engineStateText() {
+        if (enginePaused)
+            return trText("enginePaused")
+        if (engineController && engineController.lastError && engineController.lastError.length > 0)
+            return engineStatusText()
+        if (engineLoading || !engineController || !engineController.running)
+            return trText("engineLoading")
+        return trText("engineAutoAnalyzing") + " - " + engineCandidateSummaryText()
+    }
+
+    function engineDotColor() {
+        if (enginePaused)
+            return "#ff2424"
+        if (engineLoading || !engineController || !engineController.running)
+            return "#9ca4aa"
+        return "#24c95a"
+    }
+
+    function engineCandidateSummaryText() {
+        if (engineCandidateItems.length <= 0)
+            return trText("engineNoCandidates")
+        var best = engineCandidateItems[0]
+        var suffix = best.winrateText.length > 0 ? " " + best.winrateText : ""
+        return trText("engineBestMove") + ": " + coordinateText(best.x, best.y, best.z) + suffix
+    }
+
     function toolbarActionEnabled(action) {
         if (action === "candidates" || action === "refresh")
-            return false
+            return true
         if (action === "setMainBranch" || action === "delete")
             return currentNodeId !== 0
         if (action === "clearBoard")
@@ -1457,7 +2418,9 @@ ApplicationWindow {
     }
 
     function runToolbarAction(action) {
-        if (action === "setMainBranch")
+        if (action === "candidates" || action === "refresh")
+            requestEngineAnalysis(true)
+        else if (action === "setMainBranch")
             promoteCurrentNodeToMainBranch()
         else if (action === "clearBoard")
             clearBoard()
@@ -1700,6 +2663,102 @@ ApplicationWindow {
         return xCoordinateText(x) + yCoordinateText(y) + zCoordinateText(z)
     }
 
+    function parseCoordinateText(text) {
+        var value = String(text).trim()
+        var match = value.match(/^([A-Z])([a-z])(\d+)$/)
+        if (!match)
+            return null
+
+        var point = {
+            "x": match[1].charCodeAt(0) - "A".charCodeAt(0),
+            "y": match[2].charCodeAt(0) - "a".charCodeAt(0),
+            "z": parseInt(match[3], 10) - 1
+        }
+
+        if (!pointInBoard(point.x, point.y, point.z))
+            return null
+        return point
+    }
+
+    function pointInBoard(x, y, z) {
+        return x >= 0 && x < boardSizeX
+               && y >= 0 && y < boardSizeY
+               && z >= 0 && z < boardSizeZ
+    }
+
+    function canPickPoint(x, y, z) {
+        return pointInBoard(x, y, z) && stoneAt(x, y, z) === 0 && !isClipped(x, y, z)
+    }
+
+    function clampCoordinateInput(text, size) {
+        var value = parseInt(String(text), 10)
+        if (isNaN(value))
+            value = 0
+        return Math.round(clamp(value, 0, size - 1))
+    }
+
+    function clampOneBasedCoordinateInput(text, size) {
+        var value = parseInt(String(text), 10)
+        if (isNaN(value))
+            value = 1
+        return Math.round(clamp(value, 1, size))
+    }
+
+    function setSelectedPoint(x, y, z, locked) {
+        var nextX = Math.round(clamp(x, 0, boardSizeX - 1))
+        var nextY = Math.round(clamp(y, 0, boardSizeY - 1))
+        var nextZ = Math.round(clamp(z, 0, boardSizeZ - 1))
+        if (locked !== undefined)
+            selectedPointLocked = locked
+        coordinateInputX = nextX
+        coordinateInputY = nextY
+        coordinateInputZ = nextZ
+        coordinateInputText = coordinateText(nextX, nextY, nextZ)
+        hoverX = nextX
+        hoverY = nextY
+        hoverZ = nextZ
+        hoverKey = keyFor(nextX, nextY, nextZ)
+        if (!pointIsLegal(nextX, nextY, nextZ)) {
+            statusMode = stoneAt(nextX, nextY, nextZ) !== 0 ? "occupied" : "message"
+            statusMessage = trText("suicideMove") + ": " + coordinateText(nextX, nextY, nextZ)
+            statusX = nextX
+            statusY = nextY
+            statusZ = nextZ
+        } else if (statusMode === "occupied"
+                   || (statusMode === "message" && statusMessage.indexOf(trText("suicideMove")) === 0)) {
+            statusMode = "turn"
+        }
+        return true
+    }
+
+    function updateCoordinateInputText(locked) {
+        setSelectedPoint(coordinateInputX, coordinateInputY, coordinateInputZ, locked)
+    }
+
+    function applyCoordinateInputText(text) {
+        var point = parseCoordinateText(text)
+        if (!point) {
+            statusMode = "message"
+            statusMessage = trText("coordinateInvalid") + ": " + text
+            coordinateInputText = coordinateText(coordinateInputX, coordinateInputY, coordinateInputZ)
+            return
+        }
+        setSelectedPoint(point.x, point.y, point.z, true)
+    }
+
+    function editCoordinateInputText(text) {
+        coordinateInputText = text
+        var point = parseCoordinateText(text)
+        if (point)
+            setSelectedPoint(point.x, point.y, point.z, true)
+    }
+
+    function playCoordinateInput() {
+        if (!selectedPointPlayable())
+            return
+        placeStone(coordinateInputX, coordinateInputY, coordinateInputZ)
+    }
+
     function sgfEscape(value) {
         return String(value)
             .replace(/\\/g, "\\\\")
@@ -1733,8 +2792,11 @@ ApplicationWindow {
     }
 
     function buildSgf() {
-        var description = "Lizzie3D 3D Gomoku. Coordinates use SGF letters: aaa = (0,0,0), cde = (2,3,4)."
-        var text = "(;FF[4]GM[4]CA[UTF-8]AP[Lizzie3D]SZ["
+        var description = "Lizzie3D 3D " + gameRuleText()
+                + ". Coordinates use SGF letters: aaa = (0,0,0), cde = (2,3,4)."
+        var gameId = gameRuleMode === gameRuleGo ? 1 : 4
+        var ruleName = gameRuleMode === gameRuleGo ? "Lizzie3D-Go" : "Lizzie3D-Gomoku"
+        var text = "(;FF[4]GM[" + gameId + "]CA[UTF-8]AP[Lizzie3D]RU[" + sgfEscape(ruleName) + "]SZ["
                    + boardSizeX + ":" + boardSizeY + ":" + boardSizeZ + "]"
                    + "C[" + sgfEscape(description) + "]"
         var rootNode = nodeById(0)
@@ -1762,12 +2824,19 @@ ApplicationWindow {
             gameDirty = false
             statusMode = "message"
             statusMessage = trText("sgfSaved") + ": " + url
+            if (pendingRuleMode >= 0) {
+                var mode = pendingRuleMode
+                pendingRuleMode = -1
+                applyRuleModeChange(mode)
+                return
+            }
             if (shouldClose) {
                 suppressUnsavedPrompt = true
                 root.close()
                 return
             }
         } else {
+            pendingRuleMode = -1
             statusMode = "message"
             statusMessage = trText("sgfSaveFailed") + ": " + fileIo.lastError
         }
@@ -1803,6 +2872,7 @@ ApplicationWindow {
         var parsedBoardSizeX = minBoardSize
         var parsedBoardSizeY = minBoardSize
         var parsedBoardSizeZ = minBoardSize
+        var parsedRuleMode = gameRuleMode
         var maxX = -1
         var maxY = -1
         var maxZ = -1
@@ -1909,6 +2979,24 @@ ApplicationWindow {
             parsedBoardSizeZ = size.z
         }
 
+        function updateRuleFromProperties(properties) {
+            var gmValue = firstSgfValue(properties, "GM")
+            var ruValue = firstSgfValue(properties, "RU").toUpperCase()
+            if (ruValue.indexOf("GOMOKU") >= 0) {
+                parsedRuleMode = gameRuleGomoku
+                return
+            }
+            if (ruValue.indexOf("GO") >= 0) {
+                parsedRuleMode = gameRuleGo
+                return
+            }
+
+            if (gmValue === "1")
+                parsedRuleMode = gameRuleGo
+            else if (gmValue === "4")
+                parsedRuleMode = gameRuleGomoku
+        }
+
         function moveFromProperties(properties) {
             var value = ""
             var player = 0
@@ -1986,6 +3074,7 @@ ApplicationWindow {
                     pos += 1
                     var properties = parseNodeProperties()
                     updateSizeFromProperties(properties)
+                    updateRuleFromProperties(properties)
                     var move = moveFromProperties(properties)
                     if (move)
                         currentParent = appendParsedNode(currentParent, move)
@@ -2018,11 +3107,12 @@ ApplicationWindow {
                 || targetBoardSizeZ < minBoardSize || targetBoardSizeZ > maxBoardSize)
             return { "ok": false, "error": "Unsupported board size." }
 
-        return { "ok": true, "nodes": nodes, "nextNodeId": nextId,
+        return { "ok": true, "nodes": nodes, "nextNodeId": nextId, "ruleMode": parsedRuleMode,
                  "boardSizeX": targetBoardSizeX, "boardSizeY": targetBoardSizeY, "boardSizeZ": targetBoardSizeZ }
     }
 
     function applyParsedSgf(parsed, url) {
+        gameRuleMode = parsed.ruleMode === undefined ? gameRuleMode : parsed.ruleMode
         setBoardDimensions(parsed.boardSizeX, parsed.boardSizeY, parsed.boardSizeZ, false)
         resetClipCounts()
         clearHover()
@@ -2384,7 +3474,7 @@ ApplicationWindow {
 
         for (var i = 0; i < points.length; ++i) {
             var point = points[i]
-            if (isClipped(point.x, point.y, point.z))
+            if (!canPickPoint(point.x, point.y, point.z))
                 continue
 
             var p = point.position
@@ -2405,7 +3495,10 @@ ApplicationWindow {
         return bestPoint
     }
 
-    function clearHover() {
+    function clearHover(force) {
+        if (selectedPointLocked && force !== true)
+            return
+        selectedPointLocked = false
         hoverX = -1
         hoverY = -1
         hoverZ = -1
@@ -2413,12 +3506,12 @@ ApplicationWindow {
     }
 
     function updateHover(x, y) {
+        if (moveClickConfirm && selectedPointLocked)
+            return
+
         var point = pointFromMouse(x, y)
         if (point) {
-            hoverX = point.x
-            hoverY = point.y
-            hoverZ = point.z
-            hoverKey = keyFor(hoverX, hoverY, hoverZ)
+            setSelectedPoint(point.x, point.y, point.z)
         } else {
             clearHover()
         }
@@ -2430,15 +3523,81 @@ ApplicationWindow {
             placeStone(point.x, point.y, point.z)
     }
 
+    function handleBoardClickFromMouse(x, y) {
+        var point = pointFromMouse(x, y)
+        if (!moveClickConfirm) {
+            if (point)
+                placeStone(point.x, point.y, point.z)
+            return
+        }
+
+        if (!point) {
+            clearHover(true)
+            return
+        }
+
+        var nextKey = keyFor(point.x, point.y, point.z)
+        var sameLockedPoint = selectedPointLocked && hoverKey === nextKey
+        setSelectedPoint(point.x, point.y, point.z, true)
+        if (sameLockedPoint) {
+            if (!selectedPointPlayable())
+                return
+            selectedPointLocked = false
+            placeStone(point.x, point.y, point.z)
+        }
+    }
+
     onClipRevisionChanged: {
         if (hoverKey !== "" && isClipped(hoverX, hoverY, hoverZ))
-            clearHover()
+            clearHover(true)
+        rebuildEngineCandidateItems()
+    }
+
+    Connections {
+        target: engineController
+
+        function onCandidatesChanged() {
+            engineLoading = false
+            engineCandidates = engineController.candidates
+            engineCandidateRevision = engineController.candidateRevision
+            rebuildEngineCandidateItems()
+            if (engineCandidateItems.length > 0) {
+                statusMode = "message"
+                statusMessage = engineCandidateSummaryText()
+            }
+        }
+
+        function onRunningChanged() {
+            if (engineController.running) {
+                engineLoading = false
+            } else {
+                engineLoading = false
+                statusMode = "message"
+                statusMessage = engineStatusText()
+            }
+        }
+
+        function onLastErrorChanged() {
+            if (engineController.lastError && engineController.lastError.length > 0) {
+                engineLoading = false
+                statusMode = "message"
+                statusMessage = engineStatusText()
+            }
+        }
     }
 
     Component.onCompleted: {
         resetGameTree()
         rebuildBoardGeometry()
         resetCamera()
+        setSelectedPoint(0, 0, 0)
+        appReady = true
+        scheduleAutoAnalysis()
+    }
+
+    AnalysisToolbar {
+        id: analysisToolbar
+        app: root
     }
 
     CommandToolbar {
@@ -2456,6 +3615,11 @@ ApplicationWindow {
         app: root
     }
 
+    CoordinateInputPanel {
+        id: coordinateInputPanel
+        app: root
+    }
+
     BoardInputLayer {
         id: inputLayer
         app: root
@@ -2465,6 +3629,8 @@ ApplicationWindow {
     AxisGizmoPanel {
         id: axisGizmo
         app: root
+        visible: root.showAxisGizmoPanel
+        enabled: root.showAxisGizmoPanel
     }
 
     InfoPanel {

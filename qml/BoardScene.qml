@@ -7,9 +7,9 @@ View3D {
     required property var app
     property alias sceneCamera: boardCamera
     x: app.boardViewOffsetX
-    y: 0
+    y: app.analysisToolbarHeight
     width: parent.width
-    height: parent.height - app.commandToolbarHeight - app.panelGap
+    height: parent.height - app.analysisToolbarHeight - app.commandToolbarHeight - app.panelGap
     camera: boardCamera
 
     environment: SceneEnvironment {
@@ -76,7 +76,7 @@ View3D {
                 opacity: modelData.opacity
                 materials: PrincipledMaterial {
                     lighting: PrincipledMaterial.NoLighting
-                    baseColor: "#2fb97f"
+                    baseColor: modelData.color
                     alphaMode: PrincipledMaterial.Blend
                 }
             }
@@ -191,7 +191,7 @@ View3D {
                 scale: Qt.vector3d(pointScale, pointScale, pointScale)
                 opacity: app.emptyPointOpacity(clipped, hovered)
                 materials: PrincipledMaterial {
-                    baseColor: hovered ? "#2fb97f" : "#6e8794"
+                    baseColor: hovered ? app.selectedPointColor() : "#6e8794"
                     alphaMode: PrincipledMaterial.Blend
                     roughness: 0.54
                 }
@@ -201,19 +201,86 @@ View3D {
         Model {
             readonly property bool hasHover: app.hoverKey !== ""
             readonly property bool clipped: hasHover && app.isClipped(app.hoverX, app.hoverY, app.hoverZ)
-            readonly property bool emptyHover: hasHover && app.stoneAt(app.hoverX, app.hoverY, app.hoverZ) === 0
             readonly property real pointScale: app.stoneModelScale()
 
             source: "#Sphere"
             pickable: false
-            visible: hasHover && emptyHover && !clipped
+            visible: hasHover && !clipped
             position: app.pointPosition(app.hoverX, app.hoverY, app.hoverZ)
             scale: Qt.vector3d(pointScale, pointScale, pointScale)
-            opacity: 0.42
+            opacity: app.selectedPointLegal() ? 0.42 : 0.50
             materials: PrincipledMaterial {
-                baseColor: "#2fb97f"
+                baseColor: app.selectedPointColor()
                 alphaMode: PrincipledMaterial.Blend
                 roughness: 0.54
+            }
+        }
+
+        Repeater3D {
+            model: app.engineCandidateItems
+
+            delegate: Model {
+                readonly property bool clipped: app.isClipped(modelData.x, modelData.y, modelData.z)
+                readonly property real candidateScale: app.stoneModelScale()
+
+                source: "#Sphere"
+                pickable: false
+                visible: app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
+                position: modelData.position
+                scale: Qt.vector3d(candidateScale, candidateScale, candidateScale)
+                opacity: clipped ? app.hiddenLayerOpacity() : 0.58
+                materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
+                    baseColor: "#8fd6ff"
+                    alphaMode: PrincipledMaterial.Blend
+                    roughness: 0.42
+                }
+            }
+        }
+
+        Repeater3D {
+            model: app.engineCandidateItems
+
+            delegate: Model {
+                readonly property bool clipped: app.isClipped(modelData.x, modelData.y, modelData.z)
+                readonly property vector3d labelPosition: app.stoneBillboardPosition(modelData.position)
+                readonly property real labelScale: app.stoneBillboardScale() * 0.82
+
+                source: "#Rectangle"
+                pickable: false
+                visible: modelData.winrateText.length > 0
+                         && app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
+                position: labelPosition
+                rotation: app.stoneBillboardRotation(labelPosition)
+                scale: Qt.vector3d(labelScale, labelScale, labelScale)
+                opacity: clipped ? app.hiddenLayerOpacity() : 1
+                materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
+                    baseColor: "#ffffff"
+                    baseColorMap: Texture {
+                        sourceItem: Item {
+                            width: 128
+                            height: 128
+
+                            Text {
+                                anchors.centerIn: parent
+                                width: 112
+                                height: 112
+                                text: modelData.winrateText
+                                color: "#12445e"
+                                font.bold: true
+                                font.pixelSize: 52
+                                fontSizeMode: Text.Fit
+                                minimumPixelSize: 16
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                    }
+                    alphaMode: PrincipledMaterial.Mask
+                    alphaCutoff: 0.04
+                    cullMode: Material.NoCulling
+                }
             }
         }
 
@@ -243,6 +310,29 @@ View3D {
                     alphaMode: PrincipledMaterial.Blend
                     metalness: 0
                     roughness: occupant === 1 ? 0.46 : 0.62
+                }
+            }
+        }
+
+        Repeater3D {
+            model: app.gomokuWinLineItems
+
+            delegate: Model {
+                readonly property bool clipped: app.isClipped(modelData.startX, modelData.startY, modelData.startZ)
+                                                || app.isClipped(modelData.endX, modelData.endY, modelData.endZ)
+
+                source: "#Cylinder"
+                pickable: false
+                visible: app.gameRuleMode === app.gameRuleGomoku
+                position: modelData.position
+                rotation: modelData.rotation
+                scale: modelData.scale
+                opacity: clipped ? app.hiddenLayerOpacity() : 0.82
+                materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
+                    baseColor: "#f01818"
+                    alphaMode: PrincipledMaterial.Blend
+                    cullMode: Material.NoCulling
                 }
             }
         }

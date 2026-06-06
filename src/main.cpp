@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include <QUrl>
 
+#include "enginecontroller.h"
 #include "fileio.h"
 
 int main(int argc, char *argv[])
@@ -11,7 +12,9 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     FileIo fileIo;
+    EngineController engineController;
     engine.rootContext()->setContextProperty(QStringLiteral("fileIo"), &fileIo);
+    engine.rootContext()->setContextProperty(QStringLiteral("engineController"), &engineController);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

@@ -112,7 +112,11 @@ Item {
             event.accepted = true
         } else if (event.key === Qt.Key_Space) {
             if (!event.isAutoRepeat)
-                app.resetCamera()
+                app.toggleEnginePause()
+            event.accepted = true
+        } else if (event.key === Qt.Key_Comma) {
+            if (!event.isAutoRepeat)
+                app.playBestEngineMove()
             event.accepted = true
         } else if (event.key === Qt.Key_Backspace) {
             if (!event.isAutoRepeat)
@@ -216,7 +220,7 @@ Item {
 
         onReleased: function(mouse) {
             if (!inputLayer.boardPressBlocked && inputLayer.pressedButton === Qt.LeftButton && !inputLayer.moved)
-                app.placeFromMouse(mouse.x, mouse.y)
+                app.handleBoardClickFromMouse(mouse.x, mouse.y)
             inputLayer.pressedButton = 0
             inputLayer.boardPressBlocked = false
             if (app.boardInputBlocked(inputLayer, mouse.x, mouse.y))
