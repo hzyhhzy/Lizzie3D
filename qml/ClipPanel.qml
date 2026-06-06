@@ -18,14 +18,19 @@ Rectangle {
     readonly property real clipHandleScale: app.compactLayout ? 0.30 : 0.34
     readonly property real clipHandleWorldRadius: clipHandleScale * 50
     readonly property real clipAxisRodLength: Math.max(0, (clipAxisLength - clipHandleWorldRadius) * 2)
+    readonly property real preferredPanelHeight: app.compactLayout ? 318 : 420
+    readonly property real availablePanelHeight: Math.max(230,
+                                                          (parent ? parent.height : preferredPanelHeight)
+                                                          - y
+                                                          - app.bottomContentMargin
+                                                          - app.panelGap)
 
     anchors.right: branchPanelItem.left
     anchors.rightMargin: app.panelGap
     anchors.top: visualPanelItem.bottom
     anchors.topMargin: app.panelGap
-    anchors.bottom: parent.bottom
-    anchors.bottomMargin: app.bottomContentMargin
     width: app.controlPanelWidth
+    height: Math.min(preferredPanelHeight, availablePanelHeight)
     radius: 8
     color: "#f3f7f9"
     border.color: "#b9c8d0"
@@ -42,6 +47,8 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: app.compactLayout ? 54 : 60
+            spacing: app.compactLayout ? 8 : 10
 
             Label {
                 text: app.trText("viewAndClipLayers")
@@ -49,25 +56,33 @@ Rectangle {
                 font.pixelSize: app.compactLayout ? 16 : 18
                 font.bold: true
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
             }
 
-            Button {
-                text: app.trText("resetView")
-                Layout.preferredWidth: app.compactLayout ? 72 : 82
-                font.pixelSize: app.compactLayout ? 11 : 12
-                onClicked: {
-                    app.resetCamera()
-                    app.focusBoardInput()
+            ColumnLayout {
+                spacing: app.compactLayout ? 4 : 5
+                Layout.preferredWidth: app.compactLayout ? 82 : 92
+
+                Button {
+                    text: app.trText("resetView") + " (C)"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: app.compactLayout ? 24 : 26
+                    font.pixelSize: app.compactLayout ? 11 : 12
+                    onClicked: {
+                        app.resetCamera()
+                        app.focusBoardInput()
+                    }
                 }
-            }
 
-            Button {
-                text: app.trText("resetClip")
-                Layout.preferredWidth: app.compactLayout ? 72 : 82
-                font.pixelSize: app.compactLayout ? 11 : 12
-                onClicked: {
-                    app.resetClipCounts()
-                    app.focusBoardInput()
+                Button {
+                    text: app.trText("resetClip") + " (V)"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: app.compactLayout ? 24 : 26
+                    font.pixelSize: app.compactLayout ? 11 : 12
+                    onClicked: {
+                        app.resetClipCounts()
+                        app.focusBoardInput()
+                    }
                 }
             }
         }

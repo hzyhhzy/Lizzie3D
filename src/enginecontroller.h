@@ -10,6 +10,9 @@ class EngineController : public QObject
     Q_OBJECT
     Q_PROPERTY(QString command READ command WRITE setCommand NOTIFY commandChanged)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    Q_PROPERTY(bool ready READ ready NOTIFY readyChanged)
+    Q_PROPERTY(bool failed READ failed NOTIFY failedChanged)
+    Q_PROPERTY(QString failureMessage READ failureMessage NOTIFY failureMessageChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     Q_PROPERTY(QVariantList candidates READ candidates NOTIFY candidatesChanged)
@@ -23,6 +26,9 @@ public:
     void setCommand(const QString &command);
 
     bool running() const;
+    bool ready() const;
+    bool failed() const;
+    QString failureMessage() const;
     QString statusText() const;
     QString lastError() const;
     QVariantList candidates() const;
@@ -38,9 +44,13 @@ public:
 signals:
     void commandChanged();
     void runningChanged();
+    void readyChanged();
+    void failedChanged();
+    void failureMessageChanged();
     void statusTextChanged();
     void lastErrorChanged();
     void candidatesChanged();
+    void engineInput(const QString &line);
     void engineOutput(const QString &line);
     void engineErrorOutput(const QString &line);
 
@@ -55,17 +65,26 @@ private:
     void handleStderrLine(const QString &line);
     void parseInfoLine(const QString &line);
     void setRunning(bool running);
+    void setReady(bool ready);
+    void setFailed(bool failed, const QString &message = QString());
     void setStatusText(const QString &text);
     void setLastError(const QString &text);
 
     QProcess m_process;
     QString m_command;
     bool m_running = false;
+    bool m_ready = false;
+    bool m_failed = false;
+    bool m_stopping = false;
+    bool m_nameResponsePending = false;
+    QString m_failureMessage;
     QString m_statusText;
     QString m_lastError;
     QVariantList m_candidates;
     int m_candidateRevision = 0;
     QStringList m_pendingCommands;
+    int m_syncResponsesPending = 0;
+    bool m_acceptCandidateInfo = false;
     QByteArray m_stdoutBuffer;
     QByteArray m_stderrBuffer;
 };

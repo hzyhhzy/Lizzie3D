@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 
 Rectangle {
@@ -27,7 +28,7 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
         }
 
-        TextField {
+        Basic.TextField {
             id: komiField
             text: Number(app.komi).toFixed(1)
             selectByMouse: true
@@ -39,8 +40,23 @@ Rectangle {
             }
             Layout.preferredWidth: app.compactLayout ? 48 : 54
             implicitHeight: app.compactLayout ? 28 : 32
-            font.pixelSize: app.compactLayout ? 14 : 16
+            leftPadding: 3
+            rightPadding: 3
+            topPadding: 0
+            bottomPadding: 1
+            color: "#17252d"
+            selectedTextColor: "#ffffff"
+            selectionColor: "#2e8eb0"
+            font.pixelSize: app.compactLayout ? 15 : 17
+            font.bold: true
             horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            background: Rectangle {
+                radius: 4
+                color: komiField.activeFocus ? "#ffffff" : "#f9fbfc"
+                border.color: komiField.activeFocus ? "#2e8eb0" : "#9fb0b8"
+                border.width: komiField.activeFocus ? 2 : 1
+            }
 
             function applyValue() {
                 var nextValue = Number(text)
@@ -70,16 +86,18 @@ Rectangle {
 
         ColumnLayout {
             spacing: 0
-            Layout.preferredWidth: app.compactLayout ? 22 : 24
+            Layout.minimumWidth: app.compactLayout ? 14 : 16
+            Layout.preferredWidth: app.compactLayout ? 14 : 16
+            Layout.maximumWidth: app.compactLayout ? 14 : 16
             Layout.preferredHeight: app.compactLayout ? 30 : 34
 
             StepButton {
-                text: "+"
+                text: "^"
                 onClicked: app.adjustKomi(0.5)
             }
 
             StepButton {
-                text: "-"
+                text: "∨"
                 onClicked: app.adjustKomi(-0.5)
             }
         }
@@ -165,7 +183,7 @@ Rectangle {
             anchors.centerIn: parent
             text: stepButton.text
             color: "#26333b"
-            font.pixelSize: 11
+            font.pixelSize: app.compactLayout ? 9 : 10
             font.bold: true
         }
 

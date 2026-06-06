@@ -79,6 +79,7 @@ ApplicationWindow {
             "dontSave": "不保存",
             "cancel": "取消",
             "confirm": "确定",
+            "send": "发送",
             "custom": "其他",
             "boardSizeDialogTitle": "设置棋盘大小",
             "boardSizeX": "长",
@@ -94,17 +95,32 @@ ApplicationWindow {
             "engineCommand": "启动指令",
             "engineStart": "启动",
             "engineStop": "停止",
+            "enginePauseAnalysis": "暂停分析",
+            "engineRestart": "重启引擎",
+            "engineClose": "关闭引擎",
+            "engineParameters": "引擎参数",
+            "engineFailureTitle": "引擎错误",
+            "engineFailedNotice": "引擎加载失败",
+            "engineNoEngineMode": "无引擎模式",
+            "engineCommunicationLog": "引擎通信",
             "engineAnalyze": "分析",
             "engineStatus": "引擎状态",
             "engineNotStarted": "未启动",
             "engineRunning": "运行中",
             "engineCandidates": "选点",
             "engineUseFlattened2D": "使用二维换算坐标",
+            "candidateDisplayCount": "选点显示个数",
+            "candidateMinVisitRatio": "最少计算量比例",
+            "candidateIndex": "序号",
+            "candidatePosition": "位置",
+            "candidateWinrate": "胜率",
+            "candidateVisits": "计算量",
             "engineBestMove": "首选",
             "engineAnalyzeRequested": "已请求引擎分析",
             "engineNoCandidates": "暂无选点",
             "enginePaused": "分析暂停",
             "engineLoading": "引擎加载中",
+            "engineStartingNotice": "引擎启动中，可能需要几分钟",
             "engineAutoAnalyzing": "自动分析中",
             "komi": "贴目",
             "stoneColor": "落子",
@@ -130,14 +146,17 @@ ApplicationWindow {
             "ruleChanged": "已切换规则",
             "suicideMove": "禁入点",
             "captureMessage": "提子",
-            "helpKeyMoveLateral": "W/S：沿当前视角上下移动",
+            "helpKeyMoveLateral": "Q/E：沿当前视角上下移动",
             "helpKeyMoveSide": "A/D：沿当前视角左右移动",
-            "helpKeyMoveDepth": "Q/E：沿当前视角前后移动",
-            "helpKeyClip": "X/Z：减少/增加当前面向方向的裁剪层",
+            "helpKeyMoveDepth": "W/S：沿当前视角前后移动",
+            "helpKeyClip": "F/R：减少/增加当前面向方向的裁剪层",
+            "helpKeyFocus": "Z：对准上一步；X：对准第一选点",
             "helpKeyRotate": "←/→：水平旋转镜头",
-            "helpKeyResetCamera": "菜单：重置镜头",
+            "helpKeyResetCamera": "C：重置视角",
+            "helpKeyResetClip": "V：重置裁剪层",
             "helpKeyPauseEngine": "Space：暂停/继续分析",
             "helpKeyPlayBest": ",：按引擎首选落子",
+            "helpKeyEngineLog": "U：打开引擎通信窗口",
             "helpKeyDelete": "Backspace：删除当前节点",
             "helpKeyMoveLabels": "M：切换棋子手数显示",
             "helpKeyOpenSgf": "Ctrl+O：打开 SGF",
@@ -207,6 +226,7 @@ ApplicationWindow {
             "dontSave": "Don't save",
             "cancel": "Cancel",
             "confirm": "OK",
+            "send": "Send",
             "custom": "Custom",
             "boardSizeDialogTitle": "Set board size",
             "boardSizeX": "Length",
@@ -222,17 +242,32 @@ ApplicationWindow {
             "engineCommand": "Command",
             "engineStart": "Start",
             "engineStop": "Stop",
+            "enginePauseAnalysis": "Pause analysis",
+            "engineRestart": "Restart engine",
+            "engineClose": "Close engine",
+            "engineParameters": "Engine parameters",
+            "engineFailureTitle": "Engine error",
+            "engineFailedNotice": "Engine failed to load",
+            "engineNoEngineMode": "No-engine mode",
+            "engineCommunicationLog": "Engine communication",
             "engineAnalyze": "Analyze",
             "engineStatus": "Engine",
             "engineNotStarted": "Not started",
             "engineRunning": "Running",
             "engineCandidates": "Candidates",
             "engineUseFlattened2D": "Use 2D mapped coordinates",
+            "candidateDisplayCount": "Candidate count",
+            "candidateMinVisitRatio": "Minimum visit ratio",
+            "candidateIndex": "#",
+            "candidatePosition": "Move",
+            "candidateWinrate": "Winrate",
+            "candidateVisits": "Visits",
             "engineBestMove": "Best",
             "engineAnalyzeRequested": "Engine analysis requested",
             "engineNoCandidates": "No candidates yet",
             "enginePaused": "Analysis paused",
             "engineLoading": "Loading engine",
+            "engineStartingNotice": "Engine is starting, this may take a few minutes",
             "engineAutoAnalyzing": "Auto analyzing",
             "komi": "Komi",
             "stoneColor": "Stone",
@@ -258,14 +293,17 @@ ApplicationWindow {
             "ruleChanged": "Rule changed",
             "suicideMove": "Illegal self-capture",
             "captureMessage": "Captures",
-            "helpKeyMoveLateral": "W/S: move up/down relative to the camera",
+            "helpKeyMoveLateral": "Q/E: move up/down relative to the camera",
             "helpKeyMoveSide": "A/D: move left/right relative to the camera",
-            "helpKeyMoveDepth": "Q/E: move forward/back relative to the camera",
-            "helpKeyClip": "X/Z: decrease/increase clip layers on the facing axis",
+            "helpKeyMoveDepth": "W/S: move forward/back relative to the camera",
+            "helpKeyClip": "F/R: decrease/increase clip layers on the facing axis",
+            "helpKeyFocus": "Z: focus previous move; X: focus best candidate",
             "helpKeyRotate": "Left/Right: rotate the camera horizontally",
-            "helpKeyResetCamera": "Menu: reset camera",
+            "helpKeyResetCamera": "C: reset view",
+            "helpKeyResetClip": "V: reset clip layers",
             "helpKeyPauseEngine": "Space: pause/resume analysis",
             "helpKeyPlayBest": ",: play the engine best move",
+            "helpKeyEngineLog": "U: open engine communication",
             "helpKeyDelete": "Backspace: delete current node",
             "helpKeyMoveLabels": "M: switch move-number display",
             "helpKeyOpenSgf": "Ctrl+O: open SGF",
@@ -433,6 +471,18 @@ ApplicationWindow {
             title: root.trText("engine")
 
             Action {
+                text: root.trText("engineParameters")
+                onTriggered: root.openEngineParametersDialog()
+            }
+
+            Action {
+                text: root.trText("engineCommunicationLog")
+                onTriggered: root.openEngineCommunicationLog()
+            }
+
+            MenuSeparator {}
+
+            Action {
                 text: root.trText("engineStart")
                 enabled: !engineController.running
                 onTriggered: root.requestEngineAnalysis(true)
@@ -444,9 +494,20 @@ ApplicationWindow {
             }
 
             Action {
-                text: root.trText("engineStop")
+                text: root.trText("enginePauseAnalysis")
                 enabled: engineController.running
                 onTriggered: root.pauseEngineAnalysis()
+            }
+
+            Action {
+                text: root.trText("engineRestart")
+                onTriggered: root.restartEngine()
+            }
+
+            Action {
+                text: root.trText("engineClose")
+                enabled: engineController.running || engineController.failed
+                onTriggered: root.shutdownEngine()
             }
 
             MenuSeparator {}
@@ -466,10 +527,13 @@ ApplicationWindow {
             Action { text: root.trText("helpKeyMoveSide"); enabled: false }
             Action { text: root.trText("helpKeyMoveDepth"); enabled: false }
             Action { text: root.trText("helpKeyClip"); enabled: false }
+            Action { text: root.trText("helpKeyFocus"); enabled: false }
             Action { text: root.trText("helpKeyRotate"); enabled: false }
             Action { text: root.trText("helpKeyResetCamera"); enabled: false }
+            Action { text: root.trText("helpKeyResetClip"); enabled: false }
             Action { text: root.trText("helpKeyPauseEngine"); enabled: false }
             Action { text: root.trText("helpKeyPlayBest"); enabled: false }
+            Action { text: root.trText("helpKeyEngineLog"); enabled: false }
             Action { text: root.trText("helpKeyDelete"); enabled: false }
             Action { text: root.trText("helpKeyMoveLabels"); enabled: false }
             Action { text: root.trText("helpKeyOpenSgf"); enabled: false }
@@ -506,6 +570,388 @@ ApplicationWindow {
         interval: 280
         repeat: false
         onTriggered: root.requestEngineAnalysis(false)
+    }
+
+    ListModel {
+        id: engineCommunicationLogModel
+    }
+
+    ListModel {
+        id: engineCommunicationVisibleLogModel
+    }
+
+    Basic.Dialog {
+        id: engineParametersDialog
+        modal: true
+        title: root.trText("engineParameters")
+        closePolicy: Popup.CloseOnEscape
+        padding: 18
+        width: Math.min(720, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        function openForCurrentEngine() {
+            engineCommandEdit.text = engineController.command
+            engineFlattenedCheck.checked = root.useFlattened2DCoordinates
+            open()
+        }
+
+        background: Rectangle {
+            radius: 10
+            color: "#f8fbfd"
+            border.color: "#8ea5b1"
+            border.width: 1
+        }
+
+        header: Rectangle {
+            height: 52
+            color: "#e6eff4"
+            radius: 10
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: parent.radius
+                color: parent.color
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: "#c5d4dc"
+            }
+
+            Label {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 18
+                anchors.rightMargin: 18
+                text: engineParametersDialog.title
+                color: "#14242e"
+                font.pixelSize: 17
+                font.bold: true
+                elide: Text.ElideRight
+            }
+        }
+
+        contentItem: ColumnLayout {
+            implicitWidth: 684
+            spacing: 14
+
+            Label {
+                text: root.trText("engineCommand")
+                color: "#17212a"
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+
+            Basic.TextArea {
+                id: engineCommandEdit
+                selectByMouse: true
+                wrapMode: TextEdit.WrapAnywhere
+                font.pixelSize: 13
+                color: "#13232d"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 92
+
+                background: Rectangle {
+                    radius: 5
+                    color: "#ffffff"
+                    border.color: engineCommandEdit.activeFocus ? "#2388b8" : "#b7c5cc"
+                    border.width: 1
+                }
+            }
+
+            CheckBox {
+                id: engineFlattenedCheck
+                text: root.trText("engineUseFlattened2D")
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Item { Layout.fillWidth: true }
+
+                SavePromptButton {
+                    text: root.trText("confirm")
+                    primary: true
+                    onClicked: {
+                        if (engineController.command !== engineCommandEdit.text)
+                            engineController.command = engineCommandEdit.text
+                        root.useFlattened2DCoordinates = engineFlattenedCheck.checked
+                        engineParametersDialog.close()
+                        root.focusBoardInput()
+                    }
+                }
+
+                SavePromptButton {
+                    text: root.trText("cancel")
+                    onClicked: {
+                        engineParametersDialog.close()
+                        root.focusBoardInput()
+                    }
+                }
+            }
+        }
+    }
+
+    Basic.Dialog {
+        id: engineFailureDialog
+        modal: true
+        title: root.trText("engineFailureTitle")
+        closePolicy: Popup.CloseOnEscape
+        padding: 18
+        width: Math.min(520, root.width - 80)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+
+        background: Rectangle {
+            radius: 10
+            color: "#fff8f6"
+            border.color: "#d0695f"
+            border.width: 1
+        }
+
+        header: Rectangle {
+            height: 52
+            color: "#ffe2de"
+            radius: 10
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: parent.radius
+                color: parent.color
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: "#efb3ad"
+            }
+
+            Label {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 18
+                anchors.rightMargin: 18
+                text: engineFailureDialog.title
+                color: "#641a14"
+                font.pixelSize: 17
+                font.bold: true
+                elide: Text.ElideRight
+            }
+        }
+
+        contentItem: ColumnLayout {
+            implicitWidth: 484
+            spacing: 18
+
+            Label {
+                text: root.engineFailureMessage()
+                color: "#4a201b"
+                wrapMode: Text.WordWrap
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Item { Layout.fillWidth: true }
+
+                SavePromptButton {
+                    text: root.trText("confirm")
+                    primary: true
+                    onClicked: {
+                        engineFailureDialog.close()
+                        root.focusBoardInput()
+                    }
+                }
+            }
+        }
+    }
+
+    Window {
+        id: engineCommunicationDialog
+        title: root.trText("engineCommunicationLog")
+        flags: Qt.Window
+        color: "#f7fafc"
+        minimumWidth: 520
+        minimumHeight: 320
+        width: 860
+        height: 560
+        visible: false
+        property bool positionedOnce: false
+
+        function openWindow() {
+            if (!positionedOnce) {
+                width = Math.min(860, Math.max(minimumWidth, root.width - 80))
+                height = Math.min(560, Math.max(minimumHeight, root.height - 90))
+                x = Math.round(root.x + (root.width - width) / 2)
+                y = Math.round(root.y + (root.height - height) / 2)
+                positionedOnce = true
+            }
+            visible = true
+            raise()
+            requestActivate()
+            Qt.callLater(function() {
+                engineCommunicationList.positionViewAtEnd()
+                engineCommunicationCommandField.forceActiveFocus()
+            })
+        }
+
+        onVisibleChanged: {
+            if (!visible)
+                root.focusBoardInput()
+        }
+
+        Shortcut {
+            sequence: "Esc"
+            onActivated: engineCommunicationDialog.visible = false
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 10
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 18
+
+                CheckBox {
+                    text: "stdin"
+                    checked: root.showEngineCommunicationStdin
+                    onToggled: root.showEngineCommunicationStdin = checked
+                }
+
+                CheckBox {
+                    text: "stdout"
+                    checked: root.showEngineCommunicationStdout
+                    onToggled: root.showEngineCommunicationStdout = checked
+                }
+
+                CheckBox {
+                    text: "stderr"
+                    checked: root.showEngineCommunicationStderr
+                    onToggled: root.showEngineCommunicationStderr = checked
+                }
+
+                Item { Layout.fillWidth: true }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#111820"
+                border.color: "#2d3a44"
+                border.width: 1
+                clip: true
+
+                ListView {
+                    id: engineCommunicationList
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    clip: true
+                    model: engineCommunicationVisibleLogModel
+                    boundsBehavior: Flickable.StopAtBounds
+                    spacing: 1
+
+                    onCountChanged: Qt.callLater(function() {
+                        engineCommunicationList.positionViewAtEnd()
+                    })
+
+                    ScrollBar.vertical: Basic.ScrollBar {
+                        policy: ScrollBar.AsNeeded
+                    }
+
+                    delegate: Rectangle {
+                        width: engineCommunicationList.width
+                        height: Math.max(23, logText.implicitHeight + 8)
+                        color: index % 2 === 0 ? "#111820" : "#16212b"
+
+                        Text {
+                            id: logText
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            text: model.lineText
+                            color: root.engineCommunicationColor(model.stream)
+                            font.family: "Consolas"
+                            font.pixelSize: root.compactLayout ? 11 : 12
+                            wrapMode: Text.WrapAnywhere
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Basic.TextField {
+                    id: engineCommunicationCommandField
+                    selectByMouse: true
+                    font.family: "Consolas"
+                    font.pixelSize: root.compactLayout ? 12 : 13
+                    color: "#13232d"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 34
+                    onAccepted: root.sendEngineCommunicationCommand()
+
+                    background: Rectangle {
+                        radius: 5
+                        color: "#ffffff"
+                        border.color: engineCommunicationCommandField.activeFocus ? "#2388b8" : "#b7c5cc"
+                        border.width: 1
+                    }
+                }
+
+                SavePromptButton {
+                    text: root.trText("send")
+                    primary: true
+                    onClicked: root.sendEngineCommunicationCommand()
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                Item { Layout.fillWidth: true }
+
+                SavePromptButton {
+                    text: root.trText("clear")
+                    onClicked: {
+                        engineCommunicationLogModel.clear()
+                        engineCommunicationVisibleLogModel.clear()
+                    }
+                }
+
+                SavePromptButton {
+                    text: root.trText("confirm")
+                    primary: true
+                    onClicked: {
+                        engineCommunicationDialog.visible = false
+                        root.focusBoardInput()
+                    }
+                }
+            }
+        }
     }
 
     Dialog {
@@ -978,9 +1424,27 @@ ApplicationWindow {
     property bool engineAutoAnalyze: true
     property bool enginePaused: false
     property bool engineLoading: true
+    property bool engineNoticeDismissed: false
     property var engineCandidates: []
     property var engineCandidateItems: []
+    property var engineCandidateTableItems: []
     property int engineCandidateRevision: 0
+    property bool bestCandidateRingVisible: false
+    property string bestCandidateRingKey: ""
+    property int bestCandidateRingX: -1
+    property int bestCandidateRingY: -1
+    property int bestCandidateRingZ: -1
+    property int engineCommunicationLogLimit: 1000
+    property bool showEngineCommunicationStdin: true
+    property bool showEngineCommunicationStdout: true
+    property bool showEngineCommunicationStderr: true
+    property int analysisRevision: 0
+    property var engineSyncedNodeIds: []
+    property string engineSyncedBoardSignature: ""
+    property string engineSyncedKomiCommand: ""
+    property bool engineNeedsFullSync: true
+    property int candidateDisplayCount: 5
+    property real candidateMinVisitRatio: 0.10
     property int blackCaptures: 0
     property int whiteCaptures: 0
     property var gomokuWinLineItems: []
@@ -1016,7 +1480,7 @@ ApplicationWindow {
     readonly property real defaultStoneScale: defaultStoneModelScale * quick3DPrimitiveDiameter / spacing
     readonly property real minStoneScale: minStoneModelScale * quick3DPrimitiveDiameter / spacing
     readonly property real defaultGridOpacity: 0.30
-    readonly property real defaultHiddenLayerTransparency: 0.86
+    readonly property real defaultHiddenLayerTransparency: 0.95
     readonly property bool defaultHideGridLines: false
     readonly property bool defaultHideGridPoints: false
     readonly property bool defaultStoneLightingEnabled: true
@@ -1050,10 +1514,13 @@ ApplicationWindow {
     ]
 
     onUseFlattened2DCoordinatesChanged: {
+        resetEngineSyncState()
         clearEngineCandidates()
         scheduleAutoAnalysis()
     }
     onKomiChanged: scheduleAutoAnalysis()
+    onCandidateDisplayCountChanged: rebuildEngineCandidateItems()
+    onCandidateMinVisitRatioChanged: rebuildEngineCandidateItems()
     onMoveClickConfirmChanged: {
         if (!moveClickConfirm)
             selectedPointLocked = false
@@ -1063,6 +1530,9 @@ ApplicationWindow {
         rebuildPointLegality()
         scheduleAutoAnalysis()
     }
+    onShowEngineCommunicationStdinChanged: rebuildEngineCommunicationVisibleLog()
+    onShowEngineCommunicationStdoutChanged: rebuildEngineCommunicationVisibleLog()
+    onShowEngineCommunicationStderrChanged: rebuildEngineCommunicationVisibleLog()
     onCameraYawChanged: scheduleAxisCameraRefresh()
     onCameraPitchChanged: scheduleAxisCameraRefresh()
 
@@ -1091,6 +1561,7 @@ ApplicationWindow {
                || key === Qt.Key_R || key === Qt.Key_F
                || key === Qt.Key_Left || key === Qt.Key_Right
                || key === Qt.Key_X || key === Qt.Key_Z
+               || key === Qt.Key_C || key === Qt.Key_V
                || key === Qt.Key_Space
     }
 
@@ -1273,12 +1744,175 @@ ApplicationWindow {
         return Math.round(candidate.winrate) + "%"
     }
 
+    function candidateWinrateValue(candidate) {
+        if (!candidate || candidate.winrate === undefined)
+            return -1
+        var winrate = Number(candidate.winrate)
+        return isNaN(winrate) ? -1 : clamp(winrate, 0, 100)
+    }
+
+    function winrateText(value, decimals) {
+        var winrate = Number(value)
+        if (isNaN(winrate) || winrate < 0)
+            return ""
+        return clamp(winrate, 0, 100).toFixed(decimals)
+    }
+
+    function blackWinrateFromCurrentPlayerWinrate(value) {
+        var winrate = Number(value)
+        if (isNaN(winrate) || winrate < 0)
+            return -1
+        return currentPlayer === 2 ? 100 - clamp(winrate, 0, 100) : clamp(winrate, 0, 100)
+    }
+
+    function formatVisitCount(value) {
+        var visits = Number(value)
+        if (isNaN(visits) || visits <= 0)
+            return "0"
+        if (visits >= 1000000)
+            return (visits / 1000000).toFixed(visits >= 10000000 ? 0 : 1) + "M"
+        if (visits >= 1000)
+            return (visits / 1000).toFixed(visits >= 10000 ? 0 : 1) + "K"
+        return String(Math.round(visits))
+    }
+
+    function candidateVisitCount(candidate) {
+        if (!candidate || candidate.visits === undefined)
+            return 0
+        var visits = Number(candidate.visits)
+        return isNaN(visits) ? 0 : visits
+    }
+
+    function sortedEngineCandidates() {
+        var sorted = engineCandidates.slice()
+        sorted.sort(function(a, b) {
+            var orderA = a.order === undefined ? 999999 : Number(a.order)
+            var orderB = b.order === undefined ? 999999 : Number(b.order)
+            if (orderA !== orderB)
+                return orderA - orderB
+            return candidateVisitCount(b) - candidateVisitCount(a)
+        })
+        return sorted
+    }
+
+    function rebuildEngineCandidateTableItems(sortedCandidates) {
+        var sorted = sortedCandidates || sortedEngineCandidates()
+        var items = []
+        for (var i = 0; i < sorted.length; ++i) {
+            var candidate = sorted[i]
+            var point = parseEngineCoordinate(candidate.move)
+            var visits = candidateVisitCount(candidate)
+            var rawWinrate = candidateWinrateValue(candidate)
+            var blackWinrate = blackWinrateFromCurrentPlayerWinrate(rawWinrate)
+            items.push({
+                "row": i + 1,
+                "move": candidate.move || "",
+                "x": point ? point.x : -1,
+                "y": point ? point.y : -1,
+                "z": point ? point.z : -1,
+                "key": point ? keyFor(point.x, point.y, point.z) : "",
+                "coordinate": point ? coordinateText(point.x, point.y, point.z) : String(candidate.move || ""),
+                "winrate": rawWinrate,
+                "winrateText": winrateText(rawWinrate, 1),
+                "blackWinrate": blackWinrate,
+                "visits": visits,
+                "visitsText": formatVisitCount(visits),
+                "playable": point && pointInBoard(point.x, point.y, point.z)
+            })
+        }
+        engineCandidateTableItems = items
+    }
+
+    function recordCurrentAnalysisFromCandidates() {
+        var node = currentNode()
+        if (!node || engineCandidateTableItems.length <= 0)
+            return
+
+        var first = engineCandidateTableItems[0]
+        if (first.blackWinrate < 0)
+            return
+
+        node.analysisBlackWinrate = first.blackWinrate
+        node.analysisRawWinrate = first.winrate
+        node.analysisCandidateMove = first.move
+        node.analysisVisits = first.visits
+        analysisRevision += 1
+    }
+
+    function currentAnalysisBlackWinrate() {
+        analysisRevision
+        currentNodeId
+        var node = currentNode()
+        if (!node || node.analysisBlackWinrate === undefined)
+            return -1
+        var winrate = Number(node.analysisBlackWinrate)
+        return isNaN(winrate) ? -1 : clamp(winrate, 0, 100)
+    }
+
+    function currentAnalysisHasWinrate() {
+        return currentAnalysisBlackWinrate() >= 0
+    }
+
+    function currentAnalysisWhiteWinrate() {
+        var black = currentAnalysisBlackWinrate()
+        return black < 0 ? -1 : 100 - black
+    }
+
+    function winrateHistoryPoints() {
+        analysisRevision
+        currentNodeId
+        var path = nodePath(currentNodeId)
+        var points = []
+        for (var i = 0; i < path.length; ++i) {
+            var node = path[i]
+            if (!node || node.analysisBlackWinrate === undefined)
+                continue
+            var winrate = Number(node.analysisBlackWinrate)
+            if (!isNaN(winrate))
+                points.push({ "move": node.moveNumber, "winrate": clamp(winrate, 0, 100) })
+        }
+        return points
+    }
+
+    function selectEngineCandidateRow(row) {
+        var index = Math.round(row) - 1
+        if (index < 0 || index >= engineCandidateTableItems.length)
+            return
+        var item = engineCandidateTableItems[index]
+        if (!item || item.x < 0 || item.y < 0 || item.z < 0)
+            return
+        setSelectedPoint(item.x, item.y, item.z, true)
+        focusBoardInput()
+    }
+
     function rebuildEngineCandidateItems() {
         var items = []
-        if (engineCandidates.length > 0) {
-            var candidate = engineCandidates[0]
+        var sorted = sortedEngineCandidates()
+        rebuildEngineCandidateTableItems(sorted)
+        var maxVisits = 0
+        for (var m = 0; m < sorted.length; ++m)
+            maxVisits = Math.max(maxVisits, candidateVisitCount(sorted[m]))
+
+        var limit = Math.min(candidateDisplayCount, sorted.length)
+        var displayLimit = 0
+        if (maxVisits > 0) {
+            var threshold = maxVisits * candidateMinVisitRatio
+            for (var i = limit - 1; i >= 0; --i) {
+                if (candidateVisitCount(sorted[i]) >= threshold) {
+                    displayLimit = i + 1
+                    break
+                }
+            }
+        } else {
+            displayLimit = limit
+        }
+
+        for (var c = 0; c < displayLimit; ++c) {
+            var candidate = sorted[c]
             var point = parseEngineCoordinate(candidate.move)
             if (point && stoneAt(point.x, point.y, point.z) === 0) {
+                var visits = candidateVisitCount(candidate)
+                var visitRatio = maxVisits > 0 ? clamp(visits / maxVisits, 0, 1) : 1
                 items.push({
                     "x": point.x,
                     "y": point.y,
@@ -1287,17 +1921,53 @@ ApplicationWindow {
                     "position": pointPosition(point.x, point.y, point.z),
                     "move": candidate.move,
                     "order": candidate.order,
+                    "displayIndex": c + 1,
+                    "visits": visits,
+                    "visitRatio": visitRatio,
+                    "opacity": c === 0 ? 0.70 : clamp(visitRatio, 0.12, 0.88),
+                    "color": c === 0 ? "#00ffff" : "#00ff36",
                     "winrate": candidate.winrate,
                     "winrateText": candidateWinrateText(candidate)
                 })
             }
         }
         engineCandidateItems = items
+        updateBestCandidateRing(items)
+    }
+
+    function updateBestCandidateRing(items) {
+        if (!items || items.length <= 0) {
+            bestCandidateRingVisible = false
+            bestCandidateRingKey = ""
+            return
+        }
+
+        var best = items[0]
+        if (!best || best.displayIndex !== 1 || stoneAt(best.x, best.y, best.z) !== 0) {
+            bestCandidateRingVisible = false
+            bestCandidateRingKey = ""
+            return
+        }
+
+        bestCandidateRingX = best.x
+        bestCandidateRingY = best.y
+        bestCandidateRingZ = best.z
+        bestCandidateRingKey = best.key
+        bestCandidateRingVisible = true
+    }
+
+    function bestCandidateRingBasePosition() {
+        if (!bestCandidateRingVisible)
+            return Qt.vector3d(0, 0, 0)
+        return pointPosition(bestCandidateRingX, bestCandidateRingY, bestCandidateRingZ)
     }
 
     function clearEngineCandidates() {
         engineCandidates = []
         engineCandidateItems = []
+        engineCandidateTableItems = []
+        bestCandidateRingVisible = false
+        bestCandidateRingKey = ""
         engineCandidateRevision += 1
         if (engineController)
             engineController.clearCandidates()
@@ -2008,6 +2678,7 @@ ApplicationWindow {
     }
 
     function resetGameTree() {
+        resetEngineSyncState()
         stones = ({})
         stoneItems = []
         blackCaptures = 0
@@ -2289,25 +2960,102 @@ ApplicationWindow {
         return [ "boardsize3d " + boardSizeX + " " + boardSizeY + " " + boardSizeZ ]
     }
 
-    function engineSyncCommands() {
+    function resetEngineSyncState() {
+        engineSyncedNodeIds = []
+        engineSyncedBoardSignature = ""
+        engineSyncedKomiCommand = ""
+        engineNeedsFullSync = true
+    }
+
+    function engineKomiCommand() {
+        return "komi " + Number(komi).toFixed(1)
+    }
+
+    function engineBoardSignature() {
+        return [
+            useFlattened2DCoordinates ? "2d" : "3d",
+            boardSizeX,
+            boardSizeY,
+            boardSizeZ
+        ].join(":")
+    }
+
+    function enginePlayCommandForNode(node) {
+        var color = node.player === 1 ? "B" : "W"
+        var commandName = useFlattened2DCoordinates ? "play" : "play3d"
+        return commandName + " " + color + " " + engineCoordinateForNode(node)
+    }
+
+    function enginePathIds(path) {
+        var ids = []
+        for (var i = 0; i < path.length; ++i)
+            ids.push(path[i].id)
+        return ids
+    }
+
+    function engineCommonPathLength(leftIds, rightIds) {
+        var limit = Math.min(leftIds.length, rightIds.length)
+        var index = 0
+        while (index < limit && leftIds[index] === rightIds[index])
+            index += 1
+        return index
+    }
+
+    function engineFullSyncCommands(path, signature) {
         var commands = [ "stop" ]
         commands = commands.concat(engineBoardSizeCommands())
-        commands.push("komi " + Number(komi).toFixed(1))
+        var komiCommand = engineKomiCommand()
+        commands.push(komiCommand)
         commands.push("clear_board")
+        for (var i = 0; i < path.length; ++i)
+            commands.push(enginePlayCommandForNode(path[i]))
+        engineSyncedNodeIds = enginePathIds(path)
+        engineSyncedBoardSignature = signature
+        engineSyncedKomiCommand = komiCommand
+        engineNeedsFullSync = false
+        return commands
+    }
 
-        var path = nodePath(currentNodeId)
-        for (var i = 0; i < path.length; ++i) {
-            var node = path[i]
-            var color = node.player === 1 ? "B" : "W"
-            var commandName = useFlattened2DCoordinates ? "play" : "play3d"
-            commands.push(commandName + " " + color + " " + engineCoordinateForNode(node))
+    function engineIncrementalSyncCommands(path, signature) {
+        var targetIds = enginePathIds(path)
+        var currentIds = engineSyncedNodeIds || []
+        var common = engineCommonPathLength(currentIds, targetIds)
+        var commands = [ "stop" ]
+        var komiCommand = engineKomiCommand()
+        if (engineSyncedKomiCommand !== komiCommand) {
+            commands.push(komiCommand)
+            engineSyncedKomiCommand = komiCommand
         }
 
+        for (var u = currentIds.length - 1; u >= common; --u)
+            commands.push("undo")
+
+        for (var p = common; p < path.length; ++p)
+            commands.push(enginePlayCommandForNode(path[p]))
+
+        engineSyncedNodeIds = targetIds
+        engineSyncedBoardSignature = signature
+        engineNeedsFullSync = false
         return commands
+    }
+
+    function engineSyncCommands() {
+        var path = nodePath(currentNodeId)
+        var signature = engineBoardSignature()
+        var needsFullSync = engineNeedsFullSync
+                            || engineSyncedBoardSignature !== signature
+                            || !engineController
+                            || !engineController.running
+
+        if (needsFullSync)
+            return engineFullSyncCommands(path, signature)
+        return engineIncrementalSyncCommands(path, signature)
     }
 
     function scheduleAutoAnalysis() {
         if (!appReady || !engineAutoAnalyze || enginePaused)
+            return
+        if (engineController && engineController.failed)
             return
         autoAnalyzeTimer.restart()
     }
@@ -2315,11 +3063,15 @@ ApplicationWindow {
     function requestEngineAnalysis(force) {
         if (!engineController)
             return
+        if (engineController.failed && !force)
+            return
         if (enginePaused && !force)
             return
 
-        if (force)
+        if (force) {
             enginePaused = false
+            engineNoticeDismissed = false
+        }
         engineLoading = !engineController.running
 
         engineController.requestAnalysis(
@@ -2336,6 +3088,34 @@ ApplicationWindow {
             engineController.sendCommand("stop")
         statusMode = "message"
         statusMessage = trText("enginePaused")
+    }
+
+    function shutdownEngine() {
+        enginePaused = true
+        engineLoading = false
+        engineNoticeDismissed = true
+        clearEngineCandidates()
+        resetEngineSyncState()
+        if (engineController)
+            engineController.stop()
+        statusMode = "message"
+        statusMessage = trText("engineNoEngineMode")
+    }
+
+    function restartEngine() {
+        if (!engineController)
+            return
+        enginePaused = false
+        engineLoading = true
+        engineNoticeDismissed = false
+        clearEngineCandidates()
+        resetEngineSyncState()
+        engineController.restart()
+        requestEngineAnalysis(true)
+    }
+
+    function openEngineParametersDialog() {
+        engineParametersDialog.openForCurrentEngine()
     }
 
     function resumeEngineAnalysis() {
@@ -2362,12 +3142,94 @@ ApplicationWindow {
         placeStone(best.x, best.y, best.z)
     }
 
+    function openEngineCommunicationLog() {
+        engineCommunicationDialog.openWindow()
+    }
+
+    function sendEngineCommunicationCommand() {
+        var command = engineCommunicationCommandField.text.trim()
+        if (command.length <= 0)
+            return
+        if (engineController)
+            engineController.sendCommand(command)
+        engineCommunicationCommandField.text = ""
+        engineCommunicationCommandField.forceActiveFocus()
+    }
+
+    function shouldLogEngineCommunication(stream, line) {
+        var text = String(line).trim()
+        if (text.length <= 0)
+            return false
+
+        var lower = text.toLowerCase()
+        if (stream === "stdin" && lower.indexOf("kata-analyze") === 0)
+            return false
+        if (stream === "stdout" && lower.indexOf("info ") === 0)
+            return false
+        return true
+    }
+
+    function engineCommunicationStreamVisible(stream) {
+        if (stream === "stdin")
+            return showEngineCommunicationStdin
+        if (stream === "stderr")
+            return showEngineCommunicationStderr
+        return showEngineCommunicationStdout
+    }
+
+    function appendEngineCommunicationVisibleItem(item) {
+        if (!engineCommunicationStreamVisible(item.stream))
+            return
+        engineCommunicationVisibleLogModel.append({
+            "stream": item.stream,
+            "time": item.time,
+            "lineText": item.lineText
+        })
+    }
+
+    function rebuildEngineCommunicationVisibleLog() {
+        engineCommunicationVisibleLogModel.clear()
+        for (var i = 0; i < engineCommunicationLogModel.count; ++i)
+            appendEngineCommunicationVisibleItem(engineCommunicationLogModel.get(i))
+    }
+
+    function appendEngineCommunication(stream, line) {
+        if (!shouldLogEngineCommunication(stream, line))
+            return
+
+        var item = {
+            "stream": stream,
+            "time": Qt.formatTime(new Date(), "hh:mm:ss"),
+            "lineText": String(line).trim()
+        }
+        engineCommunicationLogModel.append(item)
+
+        if (engineCommunicationLogModel.count > engineCommunicationLogLimit) {
+            engineCommunicationLogModel.remove(0, engineCommunicationLogModel.count - engineCommunicationLogLimit)
+            rebuildEngineCommunicationVisibleLog()
+        } else {
+            appendEngineCommunicationVisibleItem(item)
+        }
+    }
+
+    function engineCommunicationColor(stream) {
+        if (stream === "stdin")
+            return "#7fb8ff"
+        if (stream === "stderr")
+            return "#ff8b72"
+        return "#9ee493"
+    }
+
     function engineStatusText() {
         if (!engineController)
             return trText("engineNotStarted")
+        if (engineController.failed)
+            return engineFailureMessage()
+        if (!engineController.running && !engineLoading)
+            return trText("engineNoEngineMode")
         if (enginePaused)
             return trText("enginePaused")
-        if (engineLoading)
+        if (engineLoading || (engineController.running && !engineController.ready))
             return trText("engineLoading")
         var text = engineController.running ? trText("engineRunning") : trText("engineNotStarted")
         if (engineController.lastError && engineController.lastError.length > 0)
@@ -2376,21 +3238,80 @@ ApplicationWindow {
     }
 
     function engineStateText() {
+        if (engineController && engineController.failed)
+            return trText("engineNoEngineMode")
+        if (!engineController || (engineController && !engineController.running && !engineLoading))
+            return trText("engineNoEngineMode")
         if (enginePaused)
             return trText("enginePaused")
         if (engineController && engineController.lastError && engineController.lastError.length > 0)
             return engineStatusText()
-        if (engineLoading || !engineController || !engineController.running)
+        if (engineLoading || !engineController || !engineController.running || !engineController.ready)
             return trText("engineLoading")
         return trText("engineAutoAnalyzing") + " - " + engineCandidateSummaryText()
     }
 
     function engineDotColor() {
+        if (engineController && engineController.failed)
+            return "#e02f24"
         if (enginePaused)
             return "#ff2424"
-        if (engineLoading || !engineController || !engineController.running)
+        if (engineLoading || !engineController || !engineController.running || !engineController.ready)
             return "#9ca4aa"
         return "#24c95a"
+    }
+
+    function engineStartingNoticeVisible() {
+        return !!engineController
+               && !engineController.failed
+               && !enginePaused
+               && !engineController.ready
+               && (engineLoading || engineController.running)
+    }
+
+    function engineFailureMessage() {
+        return trText("engineFailedNotice")
+    }
+
+    function engineFailureNoticeVisible() {
+        return !!engineController && engineController.failed
+    }
+
+    function engineNoticeVisible() {
+        return !engineNoticeDismissed
+               && (engineStartingNoticeVisible() || engineFailureNoticeVisible())
+    }
+
+    function engineNoticeText() {
+        if (engineFailureNoticeVisible())
+            return engineFailureMessage()
+        return trText("engineStartingNotice")
+    }
+
+    function engineNoticeFillColor() {
+        return engineFailureNoticeVisible() ? "#ffe1dd" : "#fff3c4"
+    }
+
+    function engineNoticeBorderColor() {
+        return engineFailureNoticeVisible() ? "#c9362c" : "#d49a25"
+    }
+
+    function engineNoticeTextColor() {
+        return engineFailureNoticeVisible() ? "#641a14" : "#4a3210"
+    }
+
+    function engineWinratePlaceholderText() {
+        if (engineController && !engineController.failed && !enginePaused
+                && (engineLoading || (engineController.running && !engineController.ready)))
+            return trText("engineLoading")
+        if (!engineController || (engineController && engineController.failed)
+                || (engineController && !engineController.running && !engineLoading))
+            return trText("engineNoEngineMode")
+        return ""
+    }
+
+    function engineWinratePlaceholderActive() {
+        return engineWinratePlaceholderText().length > 0
     }
 
     function engineCandidateSummaryText() {
@@ -2560,7 +3481,7 @@ ApplicationWindow {
                              0.25 * s)
     }
 
-    function stoneBillboardPosition(basePosition) {
+    function stoneBillboardPositionWithFactor(basePosition, radiusFactor) {
         cameraYaw
         cameraPitch
         cameraDistance
@@ -2572,10 +3493,45 @@ ApplicationWindow {
         var direction = length < 0.001
                         ? cameraBackVector()
                         : Qt.vector3d(dx / length, dy / length, dz / length)
-        var radius = quick3DPrimitiveDiameter * stoneModelScale() * 0.5 * 1.05
+        var radius = quick3DPrimitiveDiameter * stoneModelScale() * 0.5 * radiusFactor
         return Qt.vector3d(basePosition.x + direction.x * radius,
                            basePosition.y + direction.y * radius,
                            basePosition.z + direction.z * radius)
+    }
+
+    function stoneBillboardPosition(basePosition) {
+        return stoneBillboardPositionWithFactor(basePosition, 1.05)
+    }
+
+    function candidateRingBillboardPosition(basePosition) {
+        return stoneBillboardPositionWithFactor(basePosition, 1.12)
+    }
+
+    function candidateRingLinePositions() {
+        var data = []
+        var radius = 48
+        var segments = 96
+        for (var i = 0; i < segments; ++i) {
+            var a = Math.PI * 2 * i / segments
+            var b = Math.PI * 2 * (i + 1) / segments
+            data.push(Qt.vector3d(Math.cos(a) * radius, Math.sin(a) * radius, 0))
+            data.push(Qt.vector3d(Math.cos(b) * radius, Math.sin(b) * radius, 0))
+        }
+        return data
+    }
+
+    function stoneBillboardOffsetPosition(basePosition, screenRight, screenUp) {
+        cameraYaw
+        cameraPitch
+        cameraDistance
+        cameraTarget
+        var surface = stoneBillboardPosition(basePosition)
+        var right = cameraRightVector()
+        var up = cameraUpVector()
+        var offset = quick3DPrimitiveDiameter * stoneModelScale()
+        return Qt.vector3d(surface.x + (right.x * screenRight + up.x * screenUp) * offset,
+                           surface.y + (right.y * screenRight + up.y * screenUp) * offset,
+                           surface.z + (right.z * screenRight + up.z * screenUp) * offset)
     }
 
     function stoneBillboardRotation(labelPosition) {
@@ -2757,6 +3713,13 @@ ApplicationWindow {
         if (!selectedPointPlayable())
             return
         placeStone(coordinateInputX, coordinateInputY, coordinateInputZ)
+    }
+
+    function nudgeSelectedPoint(dx, dy, dz) {
+        setSelectedPoint(coordinateInputX + dx,
+                         coordinateInputY + dy,
+                         coordinateInputZ + dz,
+                         true)
     }
 
     function sgfEscape(value) {
@@ -3112,6 +4075,7 @@ ApplicationWindow {
     }
 
     function applyParsedSgf(parsed, url) {
+        resetEngineSyncState()
         gameRuleMode = parsed.ruleMode === undefined ? gameRuleMode : parsed.ruleMode
         setBoardDimensions(parsed.boardSizeX, parsed.boardSizeY, parsed.boardSizeZ, false)
         resetClipCounts()
@@ -3413,6 +4377,32 @@ ApplicationWindow {
         refreshCamera()
     }
 
+    function focusCameraOnPoint(x, y, z) {
+        cameraTarget = pointPosition(x, y, z)
+        refreshCamera()
+    }
+
+    function focusCameraOnPreviousMove() {
+        var node = currentNode()
+        if (!node || node.moveNumber <= 1) {
+            cameraTarget = Qt.vector3d(0, 0, 0)
+            refreshCamera()
+            return
+        }
+
+        focusCameraOnPoint(node.x, node.y, node.z)
+    }
+
+    function focusCameraOnBestCandidate() {
+        if (engineCandidateItems.length <= 0) {
+            focusCameraOnPreviousMove()
+            return
+        }
+
+        var best = engineCandidateItems[0]
+        focusCameraOnPoint(best.x, best.y, best.z)
+    }
+
     function moveTarget(depthForward, screenRight, screenUp, amountOverride) {
         var yaw = cameraYaw * Math.PI / 180
         var pitch = cameraPitch * Math.PI / 180
@@ -3506,7 +4496,7 @@ ApplicationWindow {
     }
 
     function updateHover(x, y) {
-        if (moveClickConfirm && selectedPointLocked)
+        if (selectedPointLocked)
             return
 
         var point = pointFromMouse(x, y)
@@ -3525,15 +4515,20 @@ ApplicationWindow {
 
     function handleBoardClickFromMouse(x, y) {
         var point = pointFromMouse(x, y)
+        if (!moveClickConfirm && selectedPointLocked) {
+            clearHover(true)
+            return true
+        }
+
         if (!moveClickConfirm) {
             if (point)
                 placeStone(point.x, point.y, point.z)
-            return
+            return false
         }
 
         if (!point) {
             clearHover(true)
-            return
+            return false
         }
 
         var nextKey = keyFor(point.x, point.y, point.z)
@@ -3545,6 +4540,7 @@ ApplicationWindow {
             selectedPointLocked = false
             placeStone(point.x, point.y, point.z)
         }
+        return false
     }
 
     onClipRevisionChanged: {
@@ -3556,11 +4552,24 @@ ApplicationWindow {
     Connections {
         target: engineController
 
+        function onEngineInput(line) {
+            root.appendEngineCommunication("stdin", line)
+        }
+
+        function onEngineOutput(line) {
+            root.appendEngineCommunication("stdout", line)
+        }
+
+        function onEngineErrorOutput(line) {
+            root.appendEngineCommunication("stderr", line)
+        }
+
         function onCandidatesChanged() {
             engineLoading = false
             engineCandidates = engineController.candidates
             engineCandidateRevision = engineController.candidateRevision
             rebuildEngineCandidateItems()
+            recordCurrentAnalysisFromCandidates()
             if (engineCandidateItems.length > 0) {
                 statusMode = "message"
                 statusMessage = engineCandidateSummaryText()
@@ -3571,6 +4580,7 @@ ApplicationWindow {
             if (engineController.running) {
                 engineLoading = false
             } else {
+                resetEngineSyncState()
                 engineLoading = false
                 statusMode = "message"
                 statusMessage = engineStatusText()
@@ -3582,6 +4592,16 @@ ApplicationWindow {
                 engineLoading = false
                 statusMode = "message"
                 statusMessage = engineStatusText()
+            }
+        }
+
+        function onFailedChanged() {
+            if (engineController.failed) {
+                engineLoading = false
+                engineNoticeDismissed = false
+                statusMode = "message"
+                statusMessage = engineFailureMessage()
+                engineFailureDialog.open()
             }
         }
     }
@@ -3636,6 +4656,67 @@ ApplicationWindow {
     InfoPanel {
         id: infoPanel
         app: root
+    }
+
+    Rectangle {
+        id: engineStartupNotice
+        visible: root.engineNoticeVisible()
+        x: Math.round(root.clamp(root.boardStageCenterX - width / 2,
+                                 root.boardStageLeftReserve + root.panelGap,
+                                 root.width - root.boardStageRightReserve - root.panelGap - width))
+        anchors.bottom: commandToolbar.top
+        anchors.bottomMargin: root.panelGap
+        width: Math.min(root.compactLayout ? 390 : 470,
+                        Math.max(280, root.width - root.boardStageLeftReserve
+                                 - root.boardStageRightReserve - root.panelGap * 2))
+        height: root.compactLayout ? 42 : 48
+        radius: 6
+        color: root.engineNoticeFillColor()
+        border.color: root.engineNoticeBorderColor()
+        border.width: 2
+        opacity: 0.96
+        z: 95
+
+        Text {
+            anchors.left: parent.left
+            anchors.right: noticeCloseButton.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 12
+            anchors.rightMargin: 6
+            text: root.engineNoticeText()
+            color: root.engineNoticeTextColor()
+            font.pixelSize: root.compactLayout ? 16 : 18
+            font.bold: true
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+
+        Basic.Button {
+            id: noticeCloseButton
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: root.compactLayout ? 34 : 38
+            text: "×"
+            font.pixelSize: root.compactLayout ? 18 : 20
+            font.bold: true
+            onClicked: root.engineNoticeDismissed = true
+
+            contentItem: Text {
+                text: noticeCloseButton.text
+                color: noticeCloseButton.hovered ? "#11181d" : root.engineNoticeTextColor()
+                font: noticeCloseButton.font
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            background: Rectangle {
+                color: noticeCloseButton.hovered ? "#ffffff66" : "transparent"
+                radius: 4
+            }
+        }
     }
 
     BranchPanel {

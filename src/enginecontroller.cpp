@@ -30,7 +30,10 @@ EngineController::EngineController(QObject *parent)
 
     connect(&m_process, &QProcess::started, this, [this]() {
         setRunning(true);
-        setStatusText(QStringLiteral("Engine started"));
+        setReady(false);
+        m_nameResponsePending = true;
+        setStatusText(QStringLiteral("Engine starting"));
+        sendCommand(QStringLiteral("name"));
         sendPendingCommands();
     });
 
@@ -38,6 +41,9 @@ EngineController::EngineController(QObject *parent)
     connect(&m_process, &QProcess::readyReadStandardError, this, &EngineController::readStandardError);
 
     connect(&m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+        if (m_stopping)
+            return;
+
         QString message;
         switch (error) {
         case QProcess::FailedToStart:
@@ -61,6 +67,13 @@ EngineController::EngineController(QObject *parent)
         }
         if (!m_process.errorString().isEmpty())
             message += QStringLiteral(": ") + m_process.errorString();
+        m_pendingCommands.clear();
+        m_syncResponsesPending = 0;
+        m_acceptCandidateInfo = false;
+        setReady(false);
+        setRunning(false);
+        m_nameResponsePending = false;
+        setFailed(true, message);
         setLastError(message);
         setStatusText(message);
     });
@@ -69,11 +82,28 @@ EngineController::EngineController(QObject *parent)
             qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
             this,
             [this](int exitCode, QProcess::ExitStatus exitStatus) {
+                const bool intentionalStop = m_stopping;
+                m_stopping = false;
                 setRunning(false);
+                setReady(false);
+                m_nameResponsePending = false;
+                m_syncResponsesPending = 0;
+                m_acceptCandidateInfo = false;
+
+                if (intentionalStop) {
+                    setStatusText(QStringLiteral("Engine stopped"));
+                    return;
+                }
+
                 QString message = exitStatus == QProcess::CrashExit
                                       ? QStringLiteral("Engine crashed")
                                       : QStringLiteral("Engine exited");
                 message += QStringLiteral(" (%1)").arg(exitCode);
+                if (exitStatus == QProcess::CrashExit || exitCode != 0) {
+                    m_pendingCommands.clear();
+                    setFailed(true, message);
+                    setLastError(message);
+                }
                 setStatusText(message);
             });
 }
@@ -99,6 +129,21 @@ void EngineController::setCommand(const QString &command)
 bool EngineController::running() const
 {
     return m_running;
+}
+
+bool EngineController::ready() const
+{
+    return m_ready;
+}
+
+bool EngineController::failed() const
+{
+    return m_failed;
+}
+
+QString EngineController::failureMessage() const
+{
+    return m_failureMessage;
 }
 
 QString EngineController::statusText() const
@@ -130,20 +175,43 @@ void EngineController::ensureStarted()
 
 void EngineController::restart()
 {
+    setFailed(false);
+    setLastError(QString());
+    m_pendingCommands.clear();
+    m_syncResponsesPending = 0;
+    m_acceptCandidateInfo = false;
+
     if (m_process.state() != QProcess::NotRunning) {
+        m_stopping = true;
         m_process.kill();
         m_process.waitForFinished(1200);
     }
+    m_stopping = false;
     setRunning(false);
+    setReady(false);
+    m_nameResponsePending = false;
     startProcess();
 }
 
 void EngineController::stop()
 {
-    if (m_process.state() == QProcess::NotRunning)
-        return;
+    setFailed(false);
+    setLastError(QString());
+    m_pendingCommands.clear();
+    m_syncResponsesPending = 0;
+    m_acceptCandidateInfo = false;
 
-    sendCommand(QStringLiteral("quit"));
+    if (m_process.state() == QProcess::NotRunning) {
+        setRunning(false);
+        setReady(false);
+        m_nameResponsePending = false;
+        setStatusText(QStringLiteral("Engine stopped"));
+        return;
+    }
+
+    m_stopping = true;
+    emit engineInput(QStringLiteral("quit"));
+    m_process.write(QByteArrayLiteral("quit\n"));
     m_process.closeWriteChannel();
     if (!m_process.waitForFinished(1000))
         m_process.kill();
@@ -165,7 +233,14 @@ void EngineController::sendCommand(const QString &command)
         return;
     }
 
-    const QByteArray bytes = command.toUtf8() + '\n';
+    if (!m_ready && command.trimmed() != QStringLiteral("name") && command.trimmed() != QStringLiteral("quit")) {
+        m_pendingCommands.append(command);
+        return;
+    }
+
+    const QString trimmedCommand = command.trimmed();
+    emit engineInput(trimmedCommand);
+    const QByteArray bytes = trimmedCommand.toUtf8() + '\n';
     m_process.write(bytes);
 }
 
@@ -175,6 +250,8 @@ void EngineController::requestAnalysis(const QStringList &syncCommands, const QS
     m_pendingCommands = syncCommands;
     if (!analyzeCommand.trimmed().isEmpty())
         m_pendingCommands.append(analyzeCommand.trimmed());
+    m_syncResponsesPending = syncCommands.size();
+    m_acceptCandidateInfo = m_syncResponsesPending == 0;
 
     if (m_process.state() == QProcess::Running) {
         sendPendingCommands();
@@ -187,6 +264,7 @@ void EngineController::requestAnalysis(const QStringList &syncCommands, const QS
 
 void EngineController::clearCandidates()
 {
+    m_acceptCandidateInfo = false;
     if (m_candidates.isEmpty())
         return;
 
@@ -236,13 +314,22 @@ void EngineController::startProcess()
 {
     const QStringList parts = splitCommandLine(m_command);
     if (parts.isEmpty()) {
-        setLastError(QStringLiteral("Engine command is empty"));
+        const QString message = QStringLiteral("Engine command is empty");
+        setFailed(true, message);
+        setLastError(message);
         setStatusText(m_lastError);
+        setRunning(false);
+        setReady(false);
         return;
     }
 
+    m_stopping = false;
+    setFailed(false);
     setLastError(QString());
     setStatusText(QStringLiteral("Starting engine"));
+    setReady(false);
+    m_nameResponsePending = false;
+    m_acceptCandidateInfo = false;
     m_stdoutBuffer.clear();
     m_stderrBuffer.clear();
     m_process.setWorkingDirectory(QCoreApplication::applicationDirPath());
@@ -251,7 +338,7 @@ void EngineController::startProcess()
 
 void EngineController::sendPendingCommands()
 {
-    if (m_process.state() != QProcess::Running)
+    if (m_process.state() != QProcess::Running || !m_ready)
         return;
 
     const QStringList commands = m_pendingCommands;
@@ -294,8 +381,26 @@ void EngineController::handleStdoutLine(const QString &line)
 {
     emit engineOutput(line);
     setStatusText(line);
-    if (line.startsWith(QStringLiteral("info ")))
-        parseInfoLine(line);
+    if (m_nameResponsePending
+            && (line.startsWith(QLatin1Char('=')) || line.startsWith(QLatin1Char('?')))) {
+        m_nameResponsePending = false;
+        setReady(true);
+        sendPendingCommands();
+        return;
+    }
+
+    if (line.startsWith(QStringLiteral("info "))) {
+        if (m_acceptCandidateInfo)
+            parseInfoLine(line);
+        return;
+    }
+
+    if (m_syncResponsesPending > 0
+            && (line.startsWith(QLatin1Char('=')) || line.startsWith(QLatin1Char('?')))) {
+        --m_syncResponsesPending;
+        if (m_syncResponsesPending <= 0)
+            m_acceptCandidateInfo = true;
+    }
 }
 
 void EngineController::handleStderrLine(const QString &line)
@@ -388,6 +493,27 @@ void EngineController::setRunning(bool running)
         return;
     m_running = running;
     emit runningChanged();
+}
+
+void EngineController::setReady(bool ready)
+{
+    if (m_ready == ready)
+        return;
+    m_ready = ready;
+    emit readyChanged();
+}
+
+void EngineController::setFailed(bool failed, const QString &message)
+{
+    const bool failedStateChanged = m_failed != failed;
+    const bool messageChanged = m_failureMessage != message;
+    m_failed = failed;
+    m_failureMessage = message;
+
+    if (messageChanged)
+        emit failureMessageChanged();
+    if (failedStateChanged)
+        emit failedChanged();
 }
 
 void EngineController::setStatusText(const QString &text)

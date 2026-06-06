@@ -75,10 +75,10 @@ Item {
         }
 
         if (event.key === Qt.Key_W) {
-            inputLayer.upHeld = true
+            inputLayer.forwardHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_S) {
-            inputLayer.downHeld = true
+            inputLayer.backHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_A) {
             inputLayer.leftHeld = true
@@ -87,16 +87,18 @@ Item {
             inputLayer.rightHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_Q) {
-            inputLayer.forwardHeld = true
+            inputLayer.upHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_E) {
-            inputLayer.backHeld = true
+            inputLayer.downHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_X) {
-            app.adjustClip(app.frontFacingClipAxis(), -1)
+            if (!event.isAutoRepeat)
+                app.focusCameraOnBestCandidate()
             event.accepted = true
         } else if (event.key === Qt.Key_Z) {
-            app.adjustClip(app.frontFacingClipAxis(), 1)
+            if (!event.isAutoRepeat)
+                app.focusCameraOnPreviousMove()
             event.accepted = true
         } else if (event.key === Qt.Key_Left) {
             inputLayer.turnLeftHeld = true
@@ -105,10 +107,20 @@ Item {
             inputLayer.turnRightHeld = true
             event.accepted = true
         } else if (event.key === Qt.Key_R) {
-            inputLayer.upHeld = true
+            if (!event.isAutoRepeat)
+                app.adjustClip(app.frontFacingClipAxis(), 1)
             event.accepted = true
         } else if (event.key === Qt.Key_F) {
-            inputLayer.downHeld = true
+            if (!event.isAutoRepeat)
+                app.adjustClip(app.frontFacingClipAxis(), -1)
+            event.accepted = true
+        } else if (event.key === Qt.Key_C) {
+            if (!event.isAutoRepeat)
+                app.resetCamera()
+            event.accepted = true
+        } else if (event.key === Qt.Key_V) {
+            if (!event.isAutoRepeat)
+                app.resetClipCounts()
             event.accepted = true
         } else if (event.key === Qt.Key_Space) {
             if (!event.isAutoRepeat)
@@ -126,6 +138,10 @@ Item {
             if (!event.isAutoRepeat)
                 app.cycleMoveNumberDisplayMode()
             event.accepted = true
+        } else if (event.key === Qt.Key_U) {
+            if (!event.isAutoRepeat)
+                app.openEngineCommunicationLog()
+            event.accepted = true
         }
     }
 
@@ -137,10 +153,10 @@ Item {
         }
 
         if (event.key === Qt.Key_W) {
-            inputLayer.upHeld = false
+            inputLayer.forwardHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_S) {
-            inputLayer.downHeld = false
+            inputLayer.backHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_A) {
             inputLayer.leftHeld = false
@@ -149,22 +165,16 @@ Item {
             inputLayer.rightHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_Q) {
-            inputLayer.forwardHeld = false
+            inputLayer.upHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_E) {
-            inputLayer.backHeld = false
+            inputLayer.downHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_Left) {
             inputLayer.turnLeftHeld = false
             event.accepted = true
         } else if (event.key === Qt.Key_Right) {
             inputLayer.turnRightHeld = false
-            event.accepted = true
-        } else if (event.key === Qt.Key_R) {
-            inputLayer.upHeld = false
-            event.accepted = true
-        } else if (event.key === Qt.Key_F) {
-            inputLayer.downHeld = false
             event.accepted = true
         }
     }
@@ -206,10 +216,13 @@ Item {
                 if (Math.abs(dx) + Math.abs(dy) > 2)
                     inputLayer.moved = true
                 app.rotateCameraByMouseDelta(dx, dy)
-            } else if ((mouse.buttons & Qt.RightButton) || (mouse.buttons & Qt.MiddleButton)) {
+            } else if (mouse.buttons & Qt.MiddleButton) {
                 if (Math.abs(dx) + Math.abs(dy) > 2)
                     inputLayer.moved = true
                 app.panCamera(dx, dy)
+            } else if (mouse.buttons & Qt.RightButton) {
+                if (Math.abs(dx) + Math.abs(dy) > 2)
+                    inputLayer.moved = true
             } else {
                 app.updateHover(mouse.x, mouse.y)
             }
@@ -219,11 +232,18 @@ Item {
         }
 
         onReleased: function(mouse) {
-            if (!inputLayer.boardPressBlocked && inputLayer.pressedButton === Qt.LeftButton && !inputLayer.moved)
-                app.handleBoardClickFromMouse(mouse.x, mouse.y)
+            var skipHoverUpdate = false
+            if (!inputLayer.boardPressBlocked && !inputLayer.moved) {
+                if (inputLayer.pressedButton === Qt.LeftButton)
+                    skipHoverUpdate = app.handleBoardClickFromMouse(mouse.x, mouse.y) === true
+                else if (inputLayer.pressedButton === Qt.RightButton)
+                    app.undoMove()
+            }
             inputLayer.pressedButton = 0
             inputLayer.boardPressBlocked = false
-            if (app.boardInputBlocked(inputLayer, mouse.x, mouse.y))
+            if (skipHoverUpdate)
+                app.clearHover(true)
+            else if (app.boardInputBlocked(inputLayer, mouse.x, mouse.y))
                 app.clearHover()
             else
                 app.updateHover(mouse.x, mouse.y)

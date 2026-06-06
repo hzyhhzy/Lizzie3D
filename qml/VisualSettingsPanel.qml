@@ -250,6 +250,48 @@ Rectangle {
             }
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Label {
+                text: app.trText("candidateDisplayCount")
+                color: "#2f414c"
+                font.pixelSize: app.compactLayout ? 12 : 14
+                Layout.fillWidth: true
+            }
+
+            SpinBox {
+                from: 1
+                to: 10
+                value: app.candidateDisplayCount
+                editable: true
+                Layout.preferredWidth: app.compactLayout ? 72 : 78
+                onValueModified: {
+                    app.focusBoardInput()
+                    app.candidateDisplayCount = value
+                }
+            }
+        }
+
+        Label {
+            text: app.trText("candidateMinVisitRatio") + "  " + Math.round(app.candidateMinVisitRatio * 100) + "%"
+            color: "#2f414c"
+            font.pixelSize: app.compactLayout ? 12 : 14
+            Layout.fillWidth: true
+        }
+
+        StraightSlider {
+            from: 0
+            to: 100
+            value: app.candidateMinVisitRatio * 100
+            stepSize: 1
+            Layout.fillWidth: true
+            onMoved: function(nextValue) {
+                app.candidateMinVisitRatio = nextValue / 100
+            }
+        }
+
         Label {
             text: app.trText("stoneSize") + "  " + Math.round(app.stoneScale * 100) + "%"
             color: "#2f414c"

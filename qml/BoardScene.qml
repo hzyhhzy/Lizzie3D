@@ -228,13 +228,60 @@ View3D {
                 visible: app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
                 position: modelData.position
                 scale: Qt.vector3d(candidateScale, candidateScale, candidateScale)
-                opacity: clipped ? app.hiddenLayerOpacity() : 0.58
+                opacity: clipped ? modelData.opacity * app.hiddenLayerOpacity() : modelData.opacity
                 materials: PrincipledMaterial {
                     lighting: PrincipledMaterial.NoLighting
-                    baseColor: "#8fd6ff"
+                    baseColor: modelData.color
                     alphaMode: PrincipledMaterial.Blend
                     roughness: 0.42
                 }
+            }
+        }
+
+        Model {
+            readonly property bool clipped: app.bestCandidateRingVisible
+                                            && app.isClipped(app.bestCandidateRingX,
+                                                            app.bestCandidateRingY,
+                                                            app.bestCandidateRingZ)
+            readonly property vector3d ringPosition: app.candidateRingBillboardPosition(app.bestCandidateRingBasePosition())
+            readonly property real ringScale: app.stoneBillboardScale() * 1.62
+
+            source: "#Rectangle"
+            pickable: false
+            visible: app.bestCandidateRingVisible
+                     && app.stoneAt(app.bestCandidateRingX,
+                                    app.bestCandidateRingY,
+                                    app.bestCandidateRingZ) === 0
+            position: ringPosition
+            rotation: app.stoneBillboardRotation(ringPosition)
+            scale: Qt.vector3d(ringScale, ringScale, ringScale)
+            opacity: clipped ? app.hiddenLayerOpacity() : 0.98
+            materials: PrincipledMaterial {
+                lighting: PrincipledMaterial.NoLighting
+                baseColor: "#ffffff"
+                baseColorMap: Texture {
+                    sourceItem: Item {
+                        width: 220
+                        height: 220
+
+                        Canvas {
+                            anchors.fill: parent
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.strokeStyle = "#ff1616"
+                                ctx.lineWidth = 24
+                                ctx.beginPath()
+                                ctx.arc(width / 2, height / 2, 85, 0, Math.PI * 2)
+                                ctx.stroke()
+                            }
+                            Component.onCompleted: requestPaint()
+                        }
+                    }
+                }
+                alphaMode: PrincipledMaterial.Mask
+                alphaCutoff: 0.04
+                cullMode: Material.NoCulling
             }
         }
 
@@ -248,8 +295,7 @@ View3D {
 
                 source: "#Rectangle"
                 pickable: false
-                visible: modelData.winrateText.length > 0
-                         && app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
+                visible: app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
                 position: labelPosition
                 rotation: app.stoneBillboardRotation(labelPosition)
                 scale: Qt.vector3d(labelScale, labelScale, labelScale)
@@ -263,6 +309,7 @@ View3D {
                             height: 128
 
                             Text {
+                                visible: modelData.winrateText.length > 0
                                 anchors.centerIn: parent
                                 width: 112
                                 height: 112
@@ -272,6 +319,55 @@ View3D {
                                 font.pixelSize: 52
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 16
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                        }
+                    }
+                    alphaMode: PrincipledMaterial.Mask
+                    alphaCutoff: 0.04
+                    cullMode: Material.NoCulling
+                }
+            }
+        }
+
+        Repeater3D {
+            model: app.engineCandidateItems
+
+            delegate: Model {
+                readonly property bool clipped: app.isClipped(modelData.x, modelData.y, modelData.z)
+                readonly property real indexOffset: (modelData.displayIndex === 1 ? 0.70 : 0.54) * 0.75
+                readonly property vector3d indexPosition: app.stoneBillboardOffsetPosition(modelData.position,
+                                                                                           indexOffset,
+                                                                                           indexOffset)
+                readonly property real indexScale: app.stoneBillboardScale() * (modelData.displayIndex === 1 ? 0.42 : 0.34)
+
+                source: "#Rectangle"
+                pickable: false
+                visible: app.stoneAt(modelData.x, modelData.y, modelData.z) === 0
+                position: indexPosition
+                rotation: app.stoneBillboardRotation(indexPosition)
+                scale: Qt.vector3d(indexScale, indexScale, indexScale)
+                opacity: clipped ? app.hiddenLayerOpacity() : 1
+                materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
+                    baseColor: "#ffffff"
+                    baseColorMap: Texture {
+                        sourceItem: Item {
+                            width: 96
+                            height: 96
+
+                            Text {
+                                anchors.centerIn: parent
+                                width: 88
+                                height: 88
+                                text: modelData.displayIndex
+                                color: "#ff1717"
+                                font.bold: true
+                                font.pixelSize: 148
+                                fontSizeMode: Text.Fit
+                                minimumPixelSize: 18
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
