@@ -6,7 +6,7 @@ Lizzie3D 是一个早期阶段的 Qt 6 桌面程序，用来做 3D 围棋 / 3D �
 
 项目还不完善。引擎接入、界面细节、SGF 兼容性和分析流程都还在快速变化。
 
-![Lizzie3D 主界面截图](docs/images/lizzie3d-main-window.png)
+![Lizzie3D 主界面截图](docs/images/lizzie3d-main-window-zh-cn.png)
 
 ## 功能
 

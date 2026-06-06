@@ -6,7 +6,7 @@ Lizzie3D is an early-stage Qt 6 desktop interface for 3D Go and 3D Gomoku. It pr
 
 The project is still not complete. Engine integration, UI polish, SGF compatibility, and analysis workflows are actively evolving.
 
-![Lizzie3D main window](docs/images/lizzie3d-main-window.png)
+![Lizzie3D main window](docs/images/lizzie3d-main-window-en.png)
 
 ## Features
 
